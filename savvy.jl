@@ -2,7 +2,7 @@ using Chess, Chess.PGN, Chess.UCI
 
 
 "Evaluate the board position with an engine and returns bestmove, bestscore and depth."
-function evaluate(engine, board, movetime::Int)
+function evaluate(engine, board, movetime::Int64)
     bm = nothing
     score = nothing
     depth = 0
@@ -43,13 +43,18 @@ end
 
 
 "Read pgn file and analyze the positions in the game."
-function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String, movetime::Int)
+function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
+                movetime::Int64=500, hashmb::Int64=128, numthreads::Int64=1)
     tstart = time_ns()
     analysisminply = 16
 
     # Init engine.
     engine = runengine(engine_filename)
-    
+
+    # Set engine options.
+    setoption(engine, "Hash", hashmb)
+    setoption(engine, "Threads", numthreads)
+
     for g in gamesinfile(in_pgnfn; annotations=true)
         # Save annotated game to a new game and copy its header.
         mygame = Game()
@@ -149,8 +154,13 @@ function main()
     engine_filename = "./engine/stockfish_13.exe"
     in_pgnfn = "./pgn/2021-new-in-chess-classic.pgn"
     out_pgnfn = "output_2021-new-in-chess-classic.pgn"
+
     movetime = 500
-    analyze(in_pgnfn, out_pgnfn, engine_filename, movetime)
+    hashmb = 128
+    numthreads = 1
+
+    analyze(in_pgnfn, out_pgnfn, engine_filename, movetime=movetime,
+            hashmb=hashmb, numthreads=numthreads)
 end
 
 

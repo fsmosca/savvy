@@ -5,6 +5,15 @@ A julia script that analyzes positions in a chess game
 * Install [Julia](https://julialang.org/downloads/)
 * Use the [Julia Chess](https://github.com/romstad/Chess.jl) package
 
+## Command line
+#### Help
+`julia savvy.jl --help`
+
+#### Analyze games
+```
+julia savvy.jl --engine ./engine/stockfish_13.exe --hashmb 128 --numthreads 1 --inpgn ./pgn/2021-new-in-chess-classic.pgn --outpgn analyzed.pgn --movetime 500
+```
+
 ## Sample output
 ```
 [Event "New in Chess Classic Prelims 2021"]

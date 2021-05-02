@@ -1,4 +1,40 @@
-using Chess, Chess.PGN, Chess.UCI
+using Chess, Chess.PGN, Chess.UCI, ArgParse
+
+"Command line options"
+function parse_commandline()
+    s = ArgParseSettings()
+    s.prog = "savvy"
+    s.description = "The program will analyze positions in the game."
+    s.add_version = true
+    s.version = "0.1.0"    
+
+    @add_arg_table s begin
+        "--engine"
+            help = "The engine file or path/file of the engine used to analyze the game."
+            arg_type = String
+            required = true
+        "--inpgn"
+            help = "Input your pgn filename."
+            required = true
+        "--outpgn"
+            help = "Output pgn filename with analysis."
+            default = "out.pgn"
+        "--hashmb"
+            help = "Hash in mb to be used by the engine."
+            arg_type = Int
+            default = 128
+        "--numthreads"
+            help = "Number of threads to be used by the engine."
+            arg_type = Int
+            default = 1
+        "--movetime"
+            help = "Time in mulliseconds to analyze each position in the game."
+            arg_type = Int
+            default = 500
+    end
+
+    return parse_args(s)
+end
 
 
 "Evaluate the board position with an engine and returns bestmove, bestscore and depth."
@@ -55,7 +91,12 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
     setoption(engine, "Hash", hashmb)
     setoption(engine, "Threads", numthreads)
 
+    game_num = 0
+
     for g in gamesinfile(in_pgnfn; annotations=true)
+        game_num += 1
+        println("analyzing game $game_num ...")
+
         # Save annotated game to a new game and copy its header.
         mygame = Game()
         mygame.headers = g.headers
@@ -152,16 +193,20 @@ end
 
 "Initialize some variables before starting to analyze the games in the input pgn file."
 function main()
-    engine_filename = "./engine/stockfish_13.exe"
-    in_pgnfn = "./pgn/2021-new-in-chess-classic.pgn"
-    out_pgnfn = "output_2021-new-in-chess-classic.pgn"
+    parsed_args = parse_commandline()
+    println("Parsed args:")
+    for (arg, val) in parsed_args
+        println("    $arg : $val")
+    end
 
-    movetime = 500
-    hashmb = 128
-    numthreads = 1
-
-    analyze(in_pgnfn, out_pgnfn, engine_filename, movetime=movetime,
-            hashmb=hashmb, numthreads=numthreads)
+    analyze(
+        parsed_args["inpgn"],
+        parsed_args["outpgn"],
+        parsed_args["engine"],
+        movetime=parsed_args["movetime"],
+        hashmb=parsed_args["hashmb"],
+        numthreads=parsed_args["numthreads"]
+    )
 end
 
 

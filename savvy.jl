@@ -7,12 +7,8 @@ function evaluate(engine, board, movetime::Int)
     score = nothing
     depth = 0
 
-    if ischeckmate(board)
-        return "checkmate", score, depth
-    end
-
-    if isstalemate(board)
-        return "stalemate", score, depth
+    if ischeckmate(board) || isstalemate(board)
+        return bm, score, depth
     end
 
     setboard(engine, board)
@@ -65,7 +61,7 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String, m
             bd = g.node.board
             gm_movesan = movetosan(bd, move)
 
-            domove!(mygame, move)  # Save the move on our game.
+            domove!(mygame, move)  # Save the move to mygame.
 
             if ply(mygame) < analysisminply
                 forward!(g)  # Push the move on the main board.
@@ -76,43 +72,55 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String, m
             bm, score, depth = evaluate(engine, bd, movetime)
             em_movesan = movetosan(bd, bm)
             em_score = round(score.value/100)
-            em_comment = em_movesan * " " * string(em_score) * "/" * string(depth)
+            em_comment = string(em_score) * "/" * string(depth)
 
             # If engine best move and game move are not the same, evaluate the game move too.
             if gm_movesan != em_movesan
                 undo = domove!(bd, move)
 
-                bm, score, depth = evaluate(engine, bd, movetime)
+                _, score, depth = evaluate(engine, bd, movetime)
                 if isnothing(score)
-                    gm_comment = bm
                     gm_score = score
                 else
                     gm_score = round(-score.value/100)  # cp to p
-                    gm_comment = gm_movesan * " " * string(gm_score) * "/" * string(depth)
+                    gm_comment = string(gm_score) * "/" * string(depth)
                 end
 
                 undomove!(bd, undo)
             end
 
-            # Add comment.
-            if gm_movesan == em_movesan
-                comment = "game: " * em_comment
-            else
-                comment = "game: " * gm_comment * ", engine: " * em_comment
-            end
+            # Insert engine move as variation to mygame if the game and engine move
+            # are not the same otherwise just add comment to game move.
+            if gm_movesan != em_movesan            
+                if !isnothing(gm_score)
+                    # Add comment for the evaluation of game move.
+                    adddata!(mygame.node, "comment", gm_comment)
 
-            adddata!(mygame.node, "comment", comment)
+                    # Add NAG's
+                    # Ref: https://en.wikipedia.org/wiki/Numeric_Annotation_Glyphs
 
-            # Add NAGs.
-            # https://en.wikipedia.org/wiki/Numeric_Annotation_Glyphs
-            if gm_movesan != em_movesan && !isnothing(gm_score)
-                # Add ??, from playable to losing score.
-                if gm_score <= -3.0 && em_score >= -1.0
-                    adddata!(mygame, "nag", 4)
-                # Add ?, from playable to bad score.
-                elseif gm_score < -1.0 && em_score >= -1.0
-                    adddata!(mygame, "nag", 2)
+                    # Add ?? NAG to game move, when score turns from playable to losing.
+                    if gm_score <= -3.0 && em_score >= -1.0
+                        adddata!(mygame, "nag", 4)
+                    # Else add ?, from playable to bad score.
+                    elseif gm_score < -1.0 && em_score >= -1.0
+                        adddata!(mygame, "nag", 2)
+                    end
                 end
+
+                # Back off 1 ply to insert engine move as variation.
+                back!(mygame)
+                addmove!(mygame, em_movesan)
+
+                # Add comment for the evaluation of engine move.
+                adddata!(mygame.node, "comment", em_comment)
+
+                # Restore to a node after inserting the variation.
+                back!(mygame)
+                forward!(mygame)
+            else
+                # Add comment for the evaluation of game move, use the engine evaluation.
+                adddata!(mygame.node, "comment", em_comment)
             end
 
             forward!(g)  # Push the move on the main board.

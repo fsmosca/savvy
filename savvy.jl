@@ -7,7 +7,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "The program will analyze positions in the game."
     s.add_version = true
-    s.version = "0.3.0"    
+    s.version = "0.4.0"    
 
     @add_arg_table s begin
         "--engine"
@@ -20,14 +20,6 @@ function parse_commandline()
         "--outpgn"
             help = "Output pgn filename with analysis."
             default = "out.pgn"
-        "--hashmb"
-            help = "Hash in mb to be used by the engine."
-            arg_type = Int
-            default = 128
-        "--numthreads"
-            help = "Number of threads to be used by the engine."
-            arg_type = Int
-            default = 1
         "--movetime"
             help = "Time in mulliseconds to analyze each position in the game."
             arg_type = Int
@@ -36,6 +28,9 @@ function parse_commandline()
             help = "The game move number where the engine starts its analysis."
             arg_type = Int
             default = 8
+        "--engineoptions"
+            help = "--engineoptions \"Hash=128, Threads=1, Analysis Contempt=Off\""
+            arg_type = String
     end
 
     return parse_args(s)
@@ -79,16 +74,44 @@ end
 
 "Read pgn file and analyze the positions in the game."
 function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
-                movetime::Int64=500, hashmb::Int64=128, numthreads::Int64=1,
-                evalstartmove::Int64=8)
+                movetime::Int64=500, evalstartmove::Int64=8, engineoptions::Dict=Dict())
     tstart = time_ns()
 
     # Init engine.
     engine = runengine(engine_filename)
 
     # Set engine options.
-    setoption(engine, "Hash", hashmb)
-    setoption(engine, "Threads", numthreads)
+    # Todo: Refactor the following code.
+    if !isempty(engineoptions)
+        for (k, v) in engineoptions            
+            for (k1, v1) in engine.options
+                if k == k1
+                    typenum = Int(v1.type)
+                    if typenum == 0  # check = 0
+                        value = parse(Bool, v)
+                        setoption(engine, k1, value)
+                        # println("check: setoption name $k1 value $value")
+                    elseif typenum == 1  # spin = 1
+                        value = parse(Int, v)
+                        setoption(engine, k1, value)
+                        # println("spin: setoption name $k1 value $value")
+                    elseif typenum == 4  || typenum == 2  # string=4 or combo=2
+                        setoption(engine, k1, "$v")
+                        # println("string/combo: setoption name $k1 value $v")
+                    elseif typenum == 3  # button=3
+                        setoption(engine, k1, nothing)
+                        # println("button: setoption name $k1")
+                    else
+                        println("no type")
+                        setoption(engine, k1, "$v")
+                        # println("no type: setoption name $k1 value $v")
+                    end
+
+                    break
+                end
+            end
+        end
+    end
 
     game_num = 0
 
@@ -202,14 +225,31 @@ function main()
         println("    $arg : $val")
     end
 
+    # Convert engine options string to dictionary.
+    engineoptions = parsed_args["engineoptions"]
+    optdict = Dict{String, Any}()
+    if !isnothing(engineoptions)
+        opt = split(engineoptions, ",")
+        opt_clean = strip.(opt, [' '])
+        for n in opt_clean
+            if occursin("=", n)
+                k = split(n, "=")[1]
+                v = split(n, "=")[2]
+                optdict[k] = v
+            else
+                # UCI option without value like button
+                optdict[n] = nothing
+            end
+        end
+    end
+
     analyze(
         parsed_args["inpgn"],
         parsed_args["outpgn"],
         parsed_args["engine"],
         movetime=parsed_args["movetime"],
-        hashmb=parsed_args["hashmb"],
-        numthreads=parsed_args["numthreads"],
-        evalstartmove=parsed_args["evalstartmove"]
+        evalstartmove=parsed_args["evalstartmove"],
+        engineoptions=optdict
     )
 end
 

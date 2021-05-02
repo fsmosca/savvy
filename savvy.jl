@@ -6,7 +6,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "The program will analyze positions in the game."
     s.add_version = true
-    s.version = "0.1.0"    
+    s.version = "0.2.0"    
 
     @add_arg_table s begin
         "--engine"
@@ -65,12 +65,6 @@ function evaluate(engine, board, movetime::Int64)
             score = info.score
             depth = info.depth
         end
-    end
-
-    if isnothing(bm)
-        println("Warning, engine fails to generate a best move!")
-        println(fen(board))
-        throw(DomainError(bm))
     end
 
     return bm, score, depth

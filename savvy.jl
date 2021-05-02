@@ -23,7 +23,7 @@ function evaluate(engine, board, movetime::Int64)
             bm = bi.bestmove
             break
 
-        # Save score and depth.
+        # Save the score and depth.
         elseif startswith(line, "info")
             info = parsesearchinfo(line)
             score = info.score
@@ -76,7 +76,7 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
             # Evaluate this position with the engine.
             bm, score, depth = evaluate(engine, bd, movetime)
             em_movesan = movetosan(bd, bm)
-            em_score = round(score.value/100)
+            em_score = round(score.value/100)  # convert cp to p
             em_comment = string(em_score) * "/" * string(depth)
 
             # If engine best move and game move are not the same, evaluate the game move too.
@@ -87,7 +87,8 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
                 if isnothing(score)
                     gm_score = score
                 else
-                    gm_score = round(-score.value/100)  # cp to p
+                    # Negate the score since we pushed the move before analyzing it.
+                    gm_score = round(-score.value/100)
                     gm_comment = string(gm_score) * "/" * string(depth)
                 end
 

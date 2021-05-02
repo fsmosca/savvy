@@ -11,7 +11,7 @@ A julia script that analyzes positions in a chess game
 
 #### Analyze games
 ```
-julia savvy.jl --engine ./engine/stockfish_13.exe --hashmb 128 --numthreads 1 --inpgn ./pgn/2021-new-in-chess-classic.pgn --outpgn analyzed.pgn --movetime 500
+julia savvy.jl --engine ./engine/stockfish_13.exe --engineoptions "Hash=128, Threads=2" --inpgn ./pgn/2021-new-in-chess-classic.pgn --outpgn analyzed.pgn --movetime 500
 ```
 
 ## Sample output

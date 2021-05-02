@@ -133,7 +133,7 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
         end
 
         # Update header.
-        setheadervalue!(mygame, "Annotator", "Stockfish @$movetime ms/pos")
+        setheadervalue!(mygame, "Annotator", "$(engine.name) @$movetime ms/pos")
 
         open(out_pgnfn, "a+") do filehandle
             println(filehandle, gametopgn(mygame))

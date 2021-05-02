@@ -1,12 +1,13 @@
 using Chess, Chess.PGN, Chess.UCI, ArgParse
 
+
 "Command line options"
 function parse_commandline()
     s = ArgParseSettings()
     s.prog = "savvy"
     s.description = "The program will analyze positions in the game."
     s.add_version = true
-    s.version = "0.2.0"    
+    s.version = "0.3.0"    
 
     @add_arg_table s begin
         "--engine"
@@ -31,6 +32,10 @@ function parse_commandline()
             help = "Time in mulliseconds to analyze each position in the game."
             arg_type = Int
             default = 500
+        "--evalstartmove"
+            help = "The game move number where the engine starts its analysis."
+            arg_type = Int
+            default = 8
     end
 
     return parse_args(s)
@@ -74,9 +79,9 @@ end
 
 "Read pgn file and analyze the positions in the game."
 function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
-                movetime::Int64=500, hashmb::Int64=128, numthreads::Int64=1)
+                movetime::Int64=500, hashmb::Int64=128, numthreads::Int64=1,
+                evalstartmove::Int64=8)
     tstart = time_ns()
-    analysisminply = 16
 
     # Init engine.
     engine = runengine(engine_filename)
@@ -100,13 +105,17 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
             move = nextmove(g)
             bd = g.node.board
             gm_movesan = movetosan(bd, move)
+            myply = ply(mygame)
+            mymovenum = Int(ceil(myply/2))
 
-            domove!(mygame, move)  # Save the move to mygame.
-
-            if ply(mygame) < analysisminply
+            # If current move number is below evalstartmove don't analyze this position.
+            if mymovenum < evalstartmove
+                domove!(mygame, move)  # save move to mygame
                 forward!(g)  # Push the move on the main board.
                 continue
             end
+
+            domove!(mygame, move)  # save move to mygame
 
             # Evaluate this position with the engine.
             bm, score, depth = evaluate(engine, bd, movetime)
@@ -199,7 +208,8 @@ function main()
         parsed_args["engine"],
         movetime=parsed_args["movetime"],
         hashmb=parsed_args["hashmb"],
-        numthreads=parsed_args["numthreads"]
+        numthreads=parsed_args["numthreads"],
+        evalstartmove=parsed_args["evalstartmove"]
     )
 end
 

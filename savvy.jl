@@ -10,7 +10,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "The program will analyze positions in the game."
     s.add_version = true
-    s.version = "0.5.1"    
+    s.version = "0.5.2"    
 
     @add_arg_table s begin
         "--engine"
@@ -91,20 +91,11 @@ function evaluate(engine, board, movetime::Int64)
     end
 
     return bm, score, pv, depth
-
 end
 
 
-"Read pgn file and analyze the positions in the game."
-function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
-                movetime::Int64=500, evalstartmove::Int64=8, engineoptions::Dict=Dict())
-    tstart = time_ns()
-
-    # Init engine.
-    engine = runengine(engine_filename)
-
-    # Set engine options.
-    # Todo: Refactor the following code.
+"Set user options to the engine"
+function setengineoption(engine::Engine, engineoptions::Dict)
     if !isempty(engineoptions)
         for (k, v) in engineoptions            
             for (k1, v1) in engine.options
@@ -135,6 +126,21 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
             end
         end
     end
+
+    return nothing
+end
+
+
+"Read pgn file and analyze the positions in the game."
+function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
+                movetime::Int64=500, evalstartmove::Int64=8, engineoptions::Dict=Dict())
+    tstart = time_ns()
+
+    # Init engine.
+    engine = runengine(engine_filename)
+
+    # Set engine options.
+    setengineoption(engine, engineoptions)
 
     game_num = 0
 

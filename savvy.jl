@@ -10,7 +10,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "The program will analyze positions in the game."
     s.add_version = true
-    s.version = "0.7.0"    
+    s.version = "0.8.0"    
 
     @add_arg_table s begin
         "--engine"
@@ -34,9 +34,34 @@ function parse_commandline()
         "--engineoptions"
             help = "--engineoptions \"Hash=128, Threads=1, Analysis Contempt=Off\""
             arg_type = String
+            default = ""
     end
 
     return parse_args(s)
+end
+
+
+function optionstringtodict(engineoptions::String)::Dict
+    optdict = Dict{String, Any}()
+
+    if engineoptions == ""
+        return optdict
+    end
+
+    opt = split(engineoptions, ",")
+    opt_clean = strip.(opt, [' '])
+    for n in opt_clean
+        if occursin("=", n)
+            k = split(n, "=")[1]
+            v = split(n, "=")[2]
+            optdict[k] = v
+        else
+            # UCI option without value like button
+            optdict[n] = nothing
+        end
+    end
+
+    return optdict
 end
 
 
@@ -276,22 +301,7 @@ function main()
     end
 
     # Convert engine options string to dictionary.
-    engineoptions = parsed_args["engineoptions"]
-    optdict = Dict{String, Any}()
-    if !isnothing(engineoptions)
-        opt = split(engineoptions, ",")
-        opt_clean = strip.(opt, [' '])
-        for n in opt_clean
-            if occursin("=", n)
-                k = split(n, "=")[1]
-                v = split(n, "=")[2]
-                optdict[k] = v
-            else
-                # UCI option without value like button
-                optdict[n] = nothing
-            end
-        end
-    end
+    optdict = optionstringtodict(parsed_args["engineoptions"])
 
     analyze(
         parsed_args["inpgn"],

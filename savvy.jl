@@ -10,7 +10,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "The program will analyze positions in the game."
     s.add_version = true
-    s.version = "0.5.0"    
+    s.version = "0.5.1"    
 
     @add_arg_table s begin
         "--engine"
@@ -30,7 +30,7 @@ function parse_commandline()
         "--evalstartmove"
             help = "The game move number where the engine starts its analysis."
             arg_type = Int
-            default = 8
+            default = 1
         "--engineoptions"
             help = "--engineoptions \"Hash=128, Threads=1, Analysis Contempt=Off\""
             arg_type = String

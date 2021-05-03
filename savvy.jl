@@ -10,7 +10,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "The program will analyze positions in the game."
     s.add_version = true
-    s.version = "0.5.3"    
+    s.version = "0.5.4"    
 
     @add_arg_table s begin
         "--engine"
@@ -41,16 +41,16 @@ end
 
 
 "Converts mate value to score cp"
-function matenumtocp(matenum::Int)
+function matenumtocp(matenum::Int)::Int
+    score = 0
+
     if matenum > 0
-        return VALUE_MATE - 2*matenum + 1
+        score = VALUE_MATE - 2*matenum + 1
+    elseif matenum < 0
+        score = -VALUE_MATE - 2*matenum
     end
 
-    if matenum < 0
-        return -VALUE_MATE - 2*matenum
-    end
-
-    throw("matenum should not be zero")
+    return score
 end
 
 

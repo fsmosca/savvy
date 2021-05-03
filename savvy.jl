@@ -1,13 +1,16 @@
 using Chess, Chess.PGN, Chess.UCI, ArgParse
 
 
+VALUE_MATE = 32000
+
+
 "Command line options"
 function parse_commandline()
     s = ArgParseSettings()
     s.prog = "savvy"
     s.description = "The program will analyze positions in the game."
     s.add_version = true
-    s.version = "0.4.0"    
+    s.version = "0.5.0"    
 
     @add_arg_table s begin
         "--engine"
@@ -37,14 +40,33 @@ function parse_commandline()
 end
 
 
-"Evaluate the board position with an engine and returns bestmove, bestscore and depth."
+"Converts mate value to score cp"
+function matenumtocp(matenum::Int)
+    if matenum > 0
+        return VALUE_MATE - 2*matenum + 1
+    end
+
+    if matenum < 0
+        return -VALUE_MATE - 2*matenum
+    end
+
+    throw("matenum should not be zero")
+end
+
+
+"Evaluate the board position with an engine and returns bestmove, bestscore pv and depth."
 function evaluate(engine, board, movetime::Int64)
     bm = nothing
     score = nothing
+    pv = nothing
     depth = 0
 
-    if ischeckmate(board) || isstalemate(board)
-        return bm, score, depth
+    if ischeckmate(board)
+        return bm, Score(-32000, false, Chess.UCI.exact), pv, depth
+    end
+    
+    if isstalemate(board)
+        return bm, Score(0, false, Chess.UCI.exact), pv, depth
     end
 
     setboard(engine, board)
@@ -62,12 +84,13 @@ function evaluate(engine, board, movetime::Int64)
         # Save the score and depth.
         elseif startswith(line, "info")
             info = parsesearchinfo(line)
+            pv = info.pv
             score = info.score
             depth = info.depth
         end
     end
 
-    return bm, score, depth
+    return bm, score, pv, depth
 
 end
 
@@ -141,47 +164,51 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
             domove!(mygame, move)  # save move to mygame
 
             # Evaluate this position with the engine.
-            bm, score, depth = evaluate(engine, bd, movetime)
+            bm, score, pv, depth = evaluate(engine, bd, movetime)
             em_movesan = movetosan(bd, bm)
-            em_score = round(score.value/100)  # convert cp to p
+
+            # Example cp score from uci engine: score cp 10
+            if !score.ismate
+                em_score = round(score.value/100, digits=2)  # convert cp to p
+            # Example mate score from uci engine: score mate 1
+            else
+                em_score = round(matenumtocp(score.value) / 100, digits=2)
+            end
+
             em_comment = string(em_score) * "/" * string(depth)
 
             # If engine best move and game move are not the same, evaluate the game move too.
             if gm_movesan != em_movesan
                 undo = domove!(bd, move)
 
-                _, score, depth = evaluate(engine, bd, movetime)
-                if isnothing(score)
-                    gm_score = score
+                _, score, pv, depth = evaluate(engine, bd, movetime)
+                # Negate the score since we pushed the move before analyzing it.
+                if !score.ismate
+                    gm_score = round(-score.value/100, digits=2)
                 else
-                    # Negate the score since we pushed the move before analyzing it.
-                    gm_score = round(-score.value/100)
-                    gm_comment = string(gm_score) * "/" * string(depth)
+                    gm_score = round(matenumtocp(-score.value) / 100, digits=2)
                 end
+                gm_comment = string(gm_score) * "/" * string(depth)
 
                 undomove!(bd, undo)
-            end
 
-            # Insert engine move as variation to mygame if the game and engine move
-            # are not the same otherwise just add comment to game move.
-            if gm_movesan != em_movesan            
-                if !isnothing(gm_score)
-                    # Add comment for the evaluation of game move.
-                    adddata!(mygame.node, "comment", gm_comment)
+                # Add comment for the evaluation of game move.
+                adddata!(mygame.node, "comment", gm_comment)
 
-                    # Add NAG's
-                    # Ref: https://en.wikipedia.org/wiki/Numeric_Annotation_Glyphs
+                # Add NAG's
+                # Ref: https://en.wikipedia.org/wiki/Numeric_Annotation_Glyphs
 
-                    # Add ?? NAG to game move, when score turns from playable to losing.
-                    if gm_score <= -3.0 && em_score >= -1.0
-                        adddata!(mygame, "nag", 4)
-                    # Else add ?, from playable to bad score.
-                    elseif gm_score < -1.0 && em_score >= -1.0
-                        adddata!(mygame, "nag", 2)
-                    end
+                # Add ?? NAG to game move, when score turns from playable to losing.
+                if gm_score <= -3.0 && em_score >= -1.0
+                    adddata!(mygame, "nag", 4)
+                # Else add ?, from playable to bad score.
+                elseif gm_score < -1.0 && em_score >= -1.0
+                    adddata!(mygame, "nag", 2)
                 end
 
-                # Back off 1 ply to insert engine move as variation.
+                # Insert engine move as variation to mygame.
+
+                # Back off 1 ply.
                 back!(mygame)
                 addmove!(mygame, em_movesan)
 

@@ -10,7 +10,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "The program will analyze positions in the game."
     s.add_version = true
-    s.version = "0.6.0"    
+    s.version = "0.7.0"    
 
     @add_arg_table s begin
         "--engine"
@@ -55,21 +55,21 @@ end
 
 
 "Evaluate the board position with an engine and returns bestmove, bestscore pv and depth."
-function evaluate(engine, board, movetime::Int64)
+function evaluate(engine, game, movetime::Int64)
     bm = nothing
     score = nothing
     pv = nothing
     depth = 0
 
-    if ischeckmate(board)
+    if ischeckmate(board(game))
         return bm, Score(-32000, false, Chess.UCI.exact), pv, depth
     end
     
-    if isstalemate(board)
+    if isstalemate(board(game))
         return bm, Score(0, false, Chess.UCI.exact), pv, depth
     end
 
-    setboard(engine, board)
+    setboard(engine, game)
     sendcommand(engine, "go movetime $movetime")
 
     while true
@@ -155,7 +155,7 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
         # Parse the game, visit each position.
         while !isatend(g)
             move = nextmove(g)
-            bd = g.node.board
+            bd = board(g)
             gm_movesan = movetosan(bd, move)
             myply = ply(mygame)
             mymovenum = Int(ceil(myply/2))
@@ -170,7 +170,7 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
             domove!(mygame, move)  # save move to mygame
 
             # Evaluate this position with the engine.
-            bm, score, pv, depth = evaluate(engine, bd, movetime)
+            bm, score, pv, depth = evaluate(engine, g, movetime)
             em_movesan = movetosan(bd, bm)
 
             # Prepare engine variation.
@@ -195,9 +195,12 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
 
             # If engine best move and game move are not the same, evaluate the game move too.
             if gm_movesan != em_movesan
-                undo = domove!(bd, move)
+                # Push the move and evaluate.
+                forward!(g)
+                _, score, pv, depth = evaluate(engine, g, movetime)
+                # Restore the position.
+                back!(g)
 
-                _, score, pv, depth = evaluate(engine, bd, movetime)
                 # Negate the score since we pushed the move before analyzing it.
                 if !score.ismate
                     gm_score = round(-score.value/100, digits=2)
@@ -205,8 +208,6 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
                     gm_score = round(matenumtocp(-score.value) / 100, digits=2)
                 end
                 gm_comment = string(gm_score) * "/" * string(depth)
-
-                undomove!(bd, undo)
 
                 # Add comment for the evaluation of game move.
                 adddata!(mygame.node, "comment", gm_comment)

@@ -10,7 +10,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "The program will analyze positions in the game."
     s.add_version = true
-    s.version = "0.5.2"    
+    s.version = "0.5.3"    
 
     @add_arg_table s begin
         "--engine"
@@ -244,9 +244,8 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
 
     quit(engine)
 
-elapsed = (time_ns() - tstart) / 1000000000
-print("elapsed (sec): $elapsed")
-
+    elapsed = (time_ns() - tstart) / 1000000000
+    print("elapsed (sec): $elapsed")
 end
 
 

@@ -10,7 +10,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "The program will analyze positions in the game."
     s.add_version = true
-    s.version = "0.5.5"    
+    s.version = "0.6.0"    
 
     @add_arg_table s begin
         "--engine"
@@ -173,6 +173,16 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
             bm, score, pv, depth = evaluate(engine, bd, movetime)
             em_movesan = movetosan(bd, bm)
 
+            # Prepare engine variation.
+            varlength = 5  # Todo: create option
+            pvlength = size(pv)[1]
+
+            # If score is mate show all the moves.
+            if score.ismate
+                varlength = pvlength
+            end
+            em_pv = pv[1 : min(varlength, size(pv)[1])]
+
             # Example cp score from uci engine: score cp 10
             if !score.ismate
                 em_score = round(score.value/100, digits=2)  # convert cp to p
@@ -214,15 +224,20 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
 
                 # Insert engine move as variation to mygame.
 
-                # Back off 1 ply.
+                # Back off 1 ply and add moves from engine as variation.
                 back!(mygame)
-                addmove!(mygame, em_movesan)
+                for m in em_pv
+                    addmove!(mygame, m)
+                end
 
-                # Add comment for the evaluation of engine move.
+                # Add comment at the end of the variation.
                 adddata!(mygame.node, "comment", em_comment)
 
                 # Restore to a node after inserting the variation.
-                back!(mygame)
+                for m in em_pv
+                    back!(mygame)
+                end
+                
                 forward!(mygame)
             else
                 # Add comment for the evaluation of game move, use the engine evaluation.

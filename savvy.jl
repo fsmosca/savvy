@@ -10,7 +10,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "The program will analyze positions in the game."
     s.add_version = true
-    s.version = "0.16.1"    
+    s.version = "0.16.2"    
 
     @add_arg_table s begin
         "--engine"
@@ -19,9 +19,11 @@ function parse_commandline()
             required = true
         "--inpgn"
             help = "Input your pgn filename."
+            arg_type = String
             required = true
         "--outpgn"
             help = "Output pgn filename with analysis."
+            arg_type = String
             default = "out.pgn"
         "--movetime"
             help = "Time in mulliseconds to analyze each position in the game."

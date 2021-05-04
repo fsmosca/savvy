@@ -10,7 +10,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "The program will analyze positions in the game."
     s.add_version = true
-    s.version = "0.8.0"    
+    s.version = "0.9.0"    
 
     @add_arg_table s begin
         "--engine"
@@ -38,6 +38,16 @@ function parse_commandline()
     end
 
     return parse_args(s)
+end
+
+
+"Convert value from centipawn to pawn unit"
+function centipawntopawn(value::Int64, ismate::Bool)::Float64
+    if ismate
+        return round(matenumtocp(value)/100, digits=2)
+    end
+
+    return round(value/100, digits=2)
 end
 
 
@@ -208,13 +218,7 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
             end
             em_pv = pv[1 : min(varlength, size(pv)[1])]
 
-            # Example cp score from uci engine: score cp 10
-            if !score.ismate
-                em_score = round(score.value/100, digits=2)  # convert cp to p
-            # Example mate score from uci engine: score mate 1
-            else
-                em_score = round(matenumtocp(score.value) / 100, digits=2)
-            end
+            em_score = centipawntopawn(score.value, score.ismate)
 
             em_comment = string(em_score) * "/" * string(depth)
 
@@ -227,11 +231,8 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
                 back!(g)
 
                 # Negate the score since we pushed the move before analyzing it.
-                if !score.ismate
-                    gm_score = round(-score.value/100, digits=2)
-                else
-                    gm_score = round(matenumtocp(-score.value) / 100, digits=2)
-                end
+                gm_score = centipawntopawn(-score.value, score.ismate)
+
                 gm_comment = string(gm_score) * "/" * string(depth)
 
                 # Add comment for the evaluation of game move.

@@ -10,7 +10,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "The program will analyze positions in the game."
     s.add_version = true
-    s.version = "0.10.0"    
+    s.version = "0.11.0"    
 
     @add_arg_table s begin
         "--engine"
@@ -38,6 +38,12 @@ function parse_commandline()
     end
 
     return parse_args(s)
+end
+
+
+"Build comment from score and depth info"
+function createcomment(score::Float64, depth::Int64)::String
+    return "$score/$depth"
 end
 
 
@@ -254,7 +260,7 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
 
             em_score = centipawntopawn(score.value, score.ismate)
 
-            em_comment = string(em_score) * "/" * string(depth)
+            em_comment = createcomment(em_score, depth)
 
             # If engine best move and game move are not the same, evaluate the game move too.
             if gm_movesan != em_movesan
@@ -267,7 +273,7 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
                 # Negate the score since we pushed the move before analyzing it.
                 gm_score = centipawntopawn(-score.value, score.ismate)
 
-                gm_comment = string(gm_score) * "/" * string(depth)
+                gm_comment = createcomment(gm_score, depth)
 
                 # Add comment for the evaluation of game move.
                 adddata!(mygame.node, "comment", gm_comment)

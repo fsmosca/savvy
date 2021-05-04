@@ -10,7 +10,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "The program will analyze positions in the game."
     s.add_version = true
-    s.version = "0.13.0"    
+    s.version = "0.14.0"    
 
     @add_arg_table s begin
         "--engine"
@@ -295,10 +295,13 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
 
                 # Add ?? NAG to game move, when score turns from playable to losing.
                 if gm_score <= -3.0 && em_score >= -1.0
-                    adddata!(mygame, "nag", 4)
+                    addnag!(mygame, 4)
                 # Else add ?, from playable to bad score.
                 elseif gm_score < -1.0 && em_score >= -1.0
-                    adddata!(mygame, "nag", 2)
+                    addnag!(mygame, 2)
+                # Else add !, if game move is better by at least 5 cp than engine move.
+                elseif gm_score - 0.05 >= em_score && abs(em_score) <= 3.0
+                    addnag!(mygame, 1)
                 end
 
                 # Insert engine move as variation to mygame.

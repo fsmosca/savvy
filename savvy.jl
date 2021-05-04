@@ -10,7 +10,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "The program will analyze positions in the game."
     s.add_version = true
-    s.version = "0.16.0"    
+    s.version = "0.16.1"    
 
     @add_arg_table s begin
         "--engine"
@@ -138,7 +138,7 @@ function evaluate(engine, game, movetime::Int64)
 
             # Not all pv line has a score, check it also.
             if !isnothing(currentpv) && !isnothing(info.score)
-                if size(currentpv)[1] == 1
+                if length(currentpv) == 1
                     movecount += 1
                     # If this is the first time with a single move pv, we save it in our pv.
                     if movecount == 1
@@ -264,13 +264,13 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
 
             # Prepare engine variation.
             varlength = 5  # Todo: create option
-            pvlength = size(pv)[1]
+            pvlength = length(pv)
 
             # If score is mate show all the moves.
             if escore.ismate
                 varlength = pvlength
             end
-            em_pv = pv[1 : min(varlength, size(pv)[1])]
+            em_pv = pv[1 : min(varlength, length(pv))]
 
             em_score = centipawntopawn(escore.value, escore.ismate)
 

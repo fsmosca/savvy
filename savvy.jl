@@ -8,9 +8,9 @@ VALUE_MATE = 32000
 function parse_commandline()
     s = ArgParseSettings()
     s.prog = "savvy"
-    s.description = "The program will analyze positions in the game."
+    s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.16.2"    
+    s.version = "0.16.3"    
 
     @add_arg_table s begin
         "--engine"

@@ -10,7 +10,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "The program will analyze positions in the game."
     s.add_version = true
-    s.version = "0.14.0"    
+    s.version = "0.14.1"    
 
     @add_arg_table s begin
         "--engine"
@@ -57,6 +57,7 @@ function centipawntopawn(value::Int64, ismate::Bool)::Float64
 end
 
 
+"Convert user options in string to dictionary"
 function optionstringtodict(engineoptions::String)::Dict
     optdict = Dict{String, Any}()
 

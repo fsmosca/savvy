@@ -10,7 +10,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "The program will analyze positions in the game."
     s.add_version = true
-    s.version = "0.14.1"    
+    s.version = "0.15.0"    
 
     @add_arg_table s begin
         "--engine"
@@ -172,36 +172,47 @@ function evaluate(engine, game, movetime::Int64)
 end
 
 
+"Set engine option"
+function engine_setoption(engine::Engine, k1::String, v, v1)
+    if v1.type == Chess.UCI.check
+        value = parse(Bool, v)
+        setoption(engine, k1, value)
+        println("check: setoption name $k1 value $value")
+    elseif v1.type == Chess.UCI.spin
+        value = parse(Int, v)
+        setoption(engine, k1, value)
+        println("spin: setoption name $k1 value $value")
+    elseif v1.type == Chess.UCI.combo
+        setoption(engine, k1, "$v")
+        println("combo: setoption name $k1 value $v")
+    elseif v1.type == Chess.UCI.button
+        setoption(engine, k1, nothing)
+        println("button: setoption name $k1")
+    elseif v1.type == Chess.UCI.string
+        setoption(engine, k1, "$v")
+        println("string: setoption name $k1 value $v")
+    else
+        throw("Option type is not defined.")
+    end
+
+    return nothing
+end
+
+
 "Set user options to the engine"
 function setengineoption(engine::Engine, engineoptions::Dict)
-    if !isempty(engineoptions)
-        for (k, v) in engineoptions            
-            for (k1, v1) in engine.options
-                if k == k1
-                    typenum = Int(v1.type)
-                    if typenum == 0  # check = 0
-                        value = parse(Bool, v)
-                        setoption(engine, k1, value)
-                        # println("check: setoption name $k1 value $value")
-                    elseif typenum == 1  # spin = 1
-                        value = parse(Int, v)
-                        setoption(engine, k1, value)
-                        # println("spin: setoption name $k1 value $value")
-                    elseif typenum == 4  || typenum == 2  # string=4 or combo=2
-                        setoption(engine, k1, "$v")
-                        # println("string/combo: setoption name $k1 value $v")
-                    elseif typenum == 3  # button=3
-                        setoption(engine, k1, nothing)
-                        # println("button: setoption name $k1")
-                    else
-                        println("no type")
-                        setoption(engine, k1, "$v")
-                        # println("no type: setoption name $k1 value $v")
-                    end
+    if isempty(engineoptions)
+        return nothing
+    end
 
-                    break
-                end
+    for (k, v) in engineoptions          
+        for (k1, v1) in engine.options
+            if k != k1
+                continue
             end
+
+            engine_setoption(engine, k1, v, v1)
+            break
         end
     end
 

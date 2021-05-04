@@ -10,7 +10,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "The program will analyze positions in the game."
     s.add_version = true
-    s.version = "0.15.0"    
+    s.version = "0.16.0"    
 
     @add_arg_table s begin
         "--engine"
@@ -159,11 +159,11 @@ function evaluate(engine, game, movetime::Int64)
                 else
                     pv = currentpv
                 end
-            end
 
-            if update_scoreanddepth
-                score = info.score
-                depth = info.depth
+                if update_scoreanddepth
+                    score = info.score
+                    depth = info.depth
+                end
             end
         end
     end

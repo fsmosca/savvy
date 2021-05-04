@@ -10,7 +10,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "The program will analyze positions in the game."
     s.add_version = true
-    s.version = "0.12.0"    
+    s.version = "0.13.0"    
 
     @add_arg_table s begin
         "--engine"
@@ -268,17 +268,27 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
             if gm_movesan != em_movesan
                 # Push the move and evaluate.
                 forward!(g)
-                _, score, pv, depth = evaluate(engine, g, movetime)
+                _, gscore, _, depth = evaluate(engine, g, movetime)
                 # Restore the position.
                 back!(g)
 
                 # Negate the score since we pushed the move before analyzing it.
-                gm_score = centipawntopawn(-score.value, score.ismate)
+                gm_score = centipawntopawn(-gscore.value, gscore.ismate)
 
                 gm_comment = createcomment(gm_score, depth)
 
                 # Add comment for the evaluation of game move.
-                adddata!(mygame.node, "comment", gm_comment)
+                if gscore.ismate
+                    movetomate = abs(gscore.value) + 1  # Add 1 because the move was pushed.
+                    if -gscore.value > 0
+                        matecomment = "mate in $movetomate"
+                    else
+                        matecomment = "mated in $movetomate"
+                    end
+                    addcomment!(mygame, matecomment)
+                else
+                    adddata!(mygame.node, "comment", gm_comment)
+                end
 
                 # Add NAG's
                 # Ref: https://en.wikipedia.org/wiki/Numeric_Annotation_Glyphs
@@ -315,9 +325,21 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
                 end
                 
                 forward!(mygame)
+            
+            # Engine and game move are the same.
             else
-                # Add comment for the evaluation of game move, use the engine evaluation.
-                adddata!(mygame.node, "comment", em_comment)
+                # Add comment for the evaluation of game move. Use the engine analysis.
+                if escore.ismate
+                    movetomate = abs(escore.value)
+                    if escore.value > 0
+                        matecomment = "mate in $movetomate"
+                    else
+                        matecomment = "mated in $movetomate"
+                    end
+                    addcomment!(mygame, matecomment)
+                else
+                    addcomment!(mygame, em_comment)
+                end
             end
 
             forward!(g)  # Push the move on the main board.

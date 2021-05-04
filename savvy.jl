@@ -10,7 +10,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "The program will analyze positions in the game."
     s.add_version = true
-    s.version = "0.11.0"    
+    s.version = "0.12.0"    
 
     @add_arg_table s begin
         "--engine"
@@ -134,7 +134,9 @@ function evaluate(engine, game, movetime::Int64)
             # Todo: Refactor the following code.
             currentpv = info.pv
             update_scoreanddepth = true
-            if !isnothing(currentpv)
+
+            # Not all pv line has a score, check it also.
+            if !isnothing(currentpv) && !isnothing(info.score)
                 if size(currentpv)[1] == 1
                     movecount += 1
                     # If this is the first time with a single move pv, we save it in our pv.
@@ -245,7 +247,7 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
             domove!(mygame, move)  # save move to mygame
 
             # Evaluate this position with the engine.
-            bm, score, pv, depth = evaluate(engine, g, movetime)
+            bm, escore, pv, depth = evaluate(engine, g, movetime)
             em_movesan = movetosan(bd, bm)
 
             # Prepare engine variation.
@@ -253,12 +255,12 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
             pvlength = size(pv)[1]
 
             # If score is mate show all the moves.
-            if score.ismate
+            if escore.ismate
                 varlength = pvlength
             end
             em_pv = pv[1 : min(varlength, size(pv)[1])]
 
-            em_score = centipawntopawn(score.value, score.ismate)
+            em_score = centipawntopawn(escore.value, escore.ismate)
 
             em_comment = createcomment(em_score, depth)
 
@@ -291,10 +293,17 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
 
                 # Insert engine move as variation to mygame.
 
-                # Back off 1 ply and add moves from engine as variation.
+                # Back off 1 ply and add engine pv as variation.
                 back!(mygame)
-                for m in em_pv
+
+                for (i, m) in enumerate(em_pv)
                     addmove!(mygame, m)
+                    
+                    # Add a precomment "mate in" or "mated in" in the variation.
+                    if i == 1 && escore.ismate
+                        matecomment = escore.value > 0 ? "mate in" : "mated in"
+                        addprecomment!(mygame, "$matecomment $(abs(escore.value))")
+                    end
                 end
 
                 # Add comment at the end of the variation.

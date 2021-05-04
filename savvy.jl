@@ -10,7 +10,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "The program will analyze positions in the game."
     s.add_version = true
-    s.version = "0.9.0"    
+    s.version = "0.10.0"    
 
     @add_arg_table s begin
         "--engine"
@@ -107,6 +107,8 @@ function evaluate(engine, game, movetime::Int64)
     setboard(engine, game)
     sendcommand(engine, "go movetime $movetime")
 
+    movecount = 0
+
     while true
         line = readline(engine.io)
 
@@ -119,9 +121,41 @@ function evaluate(engine, game, movetime::Int64)
         # Save the score and depth.
         elseif startswith(line, "info")
             info = parsesearchinfo(line)
-            pv = info.pv
-            score = info.score
-            depth = info.depth
+
+            # Engine like Stockfish outputs a pv with single move even if the previous
+            # pv has the same first move and have more than 1 move in the pv, if this is
+            # the case, we will not save such pv.
+            # Todo: Refactor the following code.
+            currentpv = info.pv
+            update_scoreanddepth = true
+            if !isnothing(currentpv)
+                if size(currentpv)[1] == 1
+                    movecount += 1
+                    # If this is the first time with a single move pv, we save it in our pv.
+                    if movecount == 1
+                        pv = currentpv
+                    else
+                        # Replace our pv if current pv move 1 is different from our pv move 1.
+                        if !isnothing(pv)
+                            if currentpv[1] != pv[1]
+                                pv = currentpv
+                            else
+                                update_scoreanddepth = false
+                                # println("Do not replace old pv")
+                            end
+                        else
+                            pv = currentpv
+                        end
+                    end
+                else
+                    pv = currentpv
+                end
+            end
+
+            if update_scoreanddepth
+                score = info.score
+                depth = info.depth
+            end
         end
     end
 

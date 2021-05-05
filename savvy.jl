@@ -10,7 +10,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.17.0"    
+    s.version = "0.17.1"    
 
     @add_arg_table s begin
         "--engine"
@@ -179,22 +179,23 @@ end
 
 
 "Set engine option"
-function engine_setoption(engine::Engine, k1::String, v, v1)
-    if v1.type == Chess.UCI.check
+function dosetoption(engine::Engine, k1::String, v, v1)
+    datatype = v1.type
+    if datatype == Chess.UCI.check
         value = parse(Bool, v)
         setoption(engine, k1, value)
         println("check: setoption name $k1 value $value")
-    elseif v1.type == Chess.UCI.spin
+    elseif datatype == Chess.UCI.spin
         value = parse(Int, v)
         setoption(engine, k1, value)
         println("spin: setoption name $k1 value $value")
-    elseif v1.type == Chess.UCI.combo
+    elseif datatype == Chess.UCI.combo
         setoption(engine, k1, "$v")
         println("combo: setoption name $k1 value $v")
-    elseif v1.type == Chess.UCI.button
+    elseif datatype == Chess.UCI.button
         setoption(engine, k1, nothing)
         println("button: setoption name $k1")
-    elseif v1.type == Chess.UCI.string
+    elseif datatype == Chess.UCI.string
         setoption(engine, k1, "$v")
         println("string: setoption name $k1 value $v")
     else
@@ -217,7 +218,7 @@ function setengineoption(engine::Engine, engineoptions::Dict)
                 continue
             end
 
-            engine_setoption(engine, k1, v, v1)
+            dosetoption(engine, k1, v, v1)
             break
         end
     end

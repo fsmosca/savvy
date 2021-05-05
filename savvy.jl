@@ -10,7 +10,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.16.3"    
+    s.version = "0.17.0"    
 
     @add_arg_table s begin
         "--engine"
@@ -37,6 +37,10 @@ function parse_commandline()
             help = "--engineoptions \"Hash=128, Threads=1, Analysis Contempt=Off\""
             arg_type = String
             default = ""
+        "--variationlength"
+            help = "The length of variation or number of moves in the variation to be saved in annotated game."
+            arg_type = Int
+            default = 5
     end
 
     return parse_args(s)
@@ -224,7 +228,8 @@ end
 
 "Read pgn file and analyze the positions in the game."
 function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
-                movetime::Int64=500, evalstartmove::Int64=8, engineoptions::Dict=Dict())
+                movetime::Int64=500, evalstartmove::Int64=8, engineoptions::Dict=Dict(),
+                variationlength::Int64=5)
     tstart = time_ns()
 
     # Init engine.
@@ -265,14 +270,13 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
             em_movesan = movetosan(bd, bm)
 
             # Prepare engine variation.
-            varlength = 5  # Todo: create option
             pvlength = length(pv)
 
             # If score is mate show all the moves.
             if escore.ismate
-                varlength = pvlength
+                variationlength = pvlength
             end
-            em_pv = pv[1 : min(varlength, length(pv))]
+            em_pv = pv[1 : min(variationlength, length(pv))]
 
             em_score = centipawntopawn(escore.value, escore.ismate)
 
@@ -398,7 +402,8 @@ function main()
         parsed_args["engine"],
         movetime=parsed_args["movetime"],
         evalstartmove=parsed_args["evalstartmove"],
-        engineoptions=optdict
+        engineoptions=optdict,
+        variationlength=parsed_args["variationlength"]
     )
 
     return nothing

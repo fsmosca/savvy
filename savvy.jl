@@ -10,7 +10,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.17.1"    
+    s.version = "0.18.0"    
 
     @add_arg_table s begin
         "--engine"
@@ -298,7 +298,8 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
 
                 # Add comment for the evaluation of game move.
                 if gscore.ismate
-                    movetomate = abs(gscore.value) + 1  # Add 1 because the move was pushed.
+                    # Read the mate comment after pushing the move.
+                    movetomate = abs(gscore.value)
                     if -gscore.value > 0
                         matecomment = "mate in $movetomate"
                     else
@@ -352,9 +353,11 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
             else
                 # Add comment for the evaluation of game move. Use the engine analysis.
                 if escore.ismate
+                    # Read the mate comment after pushing the move.
+                    # If side to move wins, subtract movetomate by 1.
                     movetomate = abs(escore.value)
                     if escore.value > 0
-                        matecomment = "mate in $movetomate"
+                        matecomment = "mate in $(movetomate - 1)"
                     else
                         matecomment = "mated in $movetomate"
                     end

@@ -10,7 +10,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.19.0"    
+    s.version = "0.20.0"    
 
     @add_arg_table s begin
         "--engine"
@@ -236,6 +236,10 @@ function addmovenag(mygame, em_score, gm_score)
     # Add ?? if game move score turns from playable to losing.
     # If game move score is 3 or more pawns behind but engine score is only 1 pawn behind.
     if gm_score <= -3.0 && em_score >= -1.0
+        addnag!(mygame, 4)
+
+    # Add ?? if game move is just equal or less from a winning score.
+    elseif em_score >= 3.0 && gm_score <= 0.5
         addnag!(mygame, 4)
 
     # Else add ?, ... from playable to bad score.

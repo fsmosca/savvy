@@ -10,7 +10,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.20.0"    
+    s.version = "0.20.1"    
 
     @add_arg_table s begin
         "--engine"
@@ -228,7 +228,7 @@ end
 
 
 """
-Add move NAG depending on the game and engine score.
+Add move NAG depending on the game move score and engine best move score.
 
 Ref.: NAG - https://en.wikipedia.org/wiki/Numeric_Annotation_Glyphs
 """

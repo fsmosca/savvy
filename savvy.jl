@@ -1,7 +1,7 @@
 using Chess, Chess.PGN, Chess.UCI, ArgParse
 
 
-VALUE_MATE = 32000
+const VALUE_MATE = 32000
 
 
 "Command line options"
@@ -10,7 +10,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.20.1"    
+    s.version = "0.20.2"    
 
     @add_arg_table s begin
         "--engine"

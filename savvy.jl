@@ -10,7 +10,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.18.1"    
+    s.version = "0.19.0"    
 
     @add_arg_table s begin
         "--engine"
@@ -227,6 +227,30 @@ function setengineoption(engine::Engine, engineoptions::Dict)
 end
 
 
+"""
+Add move NAG depending on the game and engine score.
+
+Ref.: NAG - https://en.wikipedia.org/wiki/Numeric_Annotation_Glyphs
+"""
+function addmovenag(mygame, em_score, gm_score)
+    # Add ?? if game move score turns from playable to losing.
+    # If game move score is 3 or more pawns behind but engine score is only 1 pawn behind.
+    if gm_score <= -3.0 && em_score >= -1.0
+        addnag!(mygame, 4)
+
+    # Else add ?, ... from playable to bad score.
+    elseif gm_score < -1.0 && em_score >= -1.0
+        addnag!(mygame, 2)
+
+    # Else add !, if game move is better by at least 5 cp than engine move.
+    elseif gm_score - 0.05 >= em_score && abs(em_score) <= 3.0
+        addnag!(mygame, 1)
+    end
+
+    return nothing
+end
+
+
 "Read pgn file and analyze the positions in the game."
 function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
                 movetime::Int64=500, evalstartmove::Int64=8, engineoptions::Dict=Dict(),
@@ -310,19 +334,8 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
                     adddata!(mygame.node, "comment", gm_comment)
                 end
 
-                # Add NAG's
-                # Ref: https://en.wikipedia.org/wiki/Numeric_Annotation_Glyphs
-
-                # Add ?? NAG to game move, when score turns from playable to losing.
-                if gm_score <= -3.0 && em_score >= -1.0
-                    addnag!(mygame, 4)
-                # Else add ?, from playable to bad score.
-                elseif gm_score < -1.0 && em_score >= -1.0
-                    addnag!(mygame, 2)
-                # Else add !, if game move is better by at least 5 cp than engine move.
-                elseif gm_score - 0.05 >= em_score && abs(em_score) <= 3.0
-                    addnag!(mygame, 1)
-                end
+                # Add NAG - Numeric_Annotation_Glyphs
+                addmovenag(mygame, em_score, gm_score)
 
                 # Insert engine move as variation to mygame.
 

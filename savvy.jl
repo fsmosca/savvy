@@ -10,7 +10,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.18.0"    
+    s.version = "0.18.1"    
 
     @add_arg_table s begin
         "--engine"
@@ -64,8 +64,8 @@ end
 
 
 "Convert user options in string to dictionary"
-function optionstringtodict(engineoptions::String)::Dict
-    optdict = Dict{String, Any}()
+function optionstringtodict(engineoptions::String)::Dict{String, String}
+    optdict = Dict{String, String}()
 
     if engineoptions == ""
         return optdict
@@ -80,7 +80,7 @@ function optionstringtodict(engineoptions::String)::Dict
             optdict[k] = v
         else
             # UCI option without value like button
-            optdict[n] = nothing
+            optdict[n] = ""
         end
     end
 

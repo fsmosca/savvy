@@ -10,7 +10,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.20.2"    
+    s.version = "0.21.0"    
 
     @add_arg_table s begin
         "--engine"
@@ -41,6 +41,9 @@ function parse_commandline()
             help = "The length of variation or number of moves in the variation to be saved in annotated game."
             arg_type = Int
             default = 5
+        "--includeexistingcomment"
+            help = "A flag to include existing comment in the output."
+            action = :store_true
     end
 
     return parse_args(s)
@@ -48,7 +51,13 @@ end
 
 
 "Build comment from score and depth info"
-function createcomment(score::Float64, depth::Int64)::String
+function createcomment(score::Float64, depth::Int64,
+                       existingcomment::Union{Nothing, String}=nothing,
+                       includeexistingcomment::Bool=false)::String
+    if includeexistingcomment && !isnothing(existingcomment)
+        return "$existingcomment $score/$depth"
+    end
+
     return "$score/$depth"
 end
 
@@ -258,7 +267,7 @@ end
 "Read pgn file and analyze the positions in the game."
 function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
                 movetime::Int64=500, evalstartmove::Int64=8, engineoptions::Dict=Dict(),
-                variationlength::Int64=5)
+                variationlength::Int64=5, includeexistingcomment::Bool=false)
     tstart = time_ns()
 
     # Init engine.
@@ -284,6 +293,7 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
             gm_movesan = movetosan(bd, move)
             myply = ply(mygame)
             mymovenum = Int(ceil(myply/2))
+            existingcomment = comment(g.node)  # can be nothing
 
             # If current move number is below evalstartmove don't analyze this position.
             if mymovenum < evalstartmove
@@ -295,7 +305,7 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
             domove!(mygame, move)  # save move to mygame
 
             # Evaluate this position with the engine.
-            bm, escore, pv, depth = evaluate(engine, g, movetime)
+            bm, escore, pv, edepth = evaluate(engine, g, movetime)
             em_movesan = movetosan(bd, bm)
 
             # Prepare engine variation.
@@ -309,7 +319,8 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
 
             em_score = centipawntopawn(escore.value, escore.ismate)
 
-            em_comment = createcomment(em_score, depth)
+            em_comment = createcomment(em_score, edepth, existingcomment,
+                                       includeexistingcomment)
 
             # If engine best move and game move are not the same, evaluate the game move too.
             if gm_movesan != em_movesan
@@ -322,7 +333,8 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
                 # Negate the score since we pushed the move before analyzing it.
                 gm_score = centipawntopawn(-gscore.value, gscore.ismate)
 
-                gm_comment = createcomment(gm_score, depth)
+                gm_comment = createcomment(gm_score, depth, existingcomment,
+                                           includeexistingcomment)
 
                 # Add comment for the evaluation of game move.
                 if gscore.ismate
@@ -357,7 +369,8 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
                 end
 
                 # Add comment at the end of the variation.
-                adddata!(mygame.node, "comment", em_comment)
+                adddata!(mygame.node, "comment",
+                         createcomment(em_score, edepth, nothing, false))
 
                 # Restore to a node after inserting the variation.
                 for m in em_pv
@@ -373,10 +386,19 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
                     # Read the mate comment after pushing the move.
                     # If side to move wins, subtract movetomate by 1.
                     movetomate = abs(escore.value)
+                    # Todo: Refactor code.
                     if escore.value > 0
-                        matecomment = "mate in $(movetomate - 1)"
+                        if includeexistingcomment && !isnothing(existingcomment)
+                            matecomment = "$existingcomment mate in $(movetomate - 1)"
+                        else
+                            matecomment = "mate in $(movetomate - 1)"
+                        end
                     else
-                        matecomment = "mated in $movetomate"
+                        if includeexistingcomment && !isnothing(existingcomment)
+                            matecomment = "$existingcomment mated in $movetomate"
+                        else
+                            matecomment = "mated in $movetomate"
+                        end
                     end
                     addcomment!(mygame, matecomment)
                 else
@@ -424,7 +446,8 @@ function main()
         movetime=parsed_args["movetime"],
         evalstartmove=parsed_args["evalstartmove"],
         engineoptions=optdict,
-        variationlength=parsed_args["variationlength"]
+        variationlength=parsed_args["variationlength"],
+        includeexistingcomment=parsed_args["includeexistingcomment"]
     )
 
     return nothing

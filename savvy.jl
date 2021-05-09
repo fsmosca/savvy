@@ -10,7 +10,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.21.0"    
+    s.version = "0.22.0"    
 
     @add_arg_table s begin
         "--engine"
@@ -266,7 +266,7 @@ end
 
 "Read pgn file and analyze the positions in the game."
 function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
-                movetime::Int64=500, evalstartmove::Int64=8, engineoptions::Dict=Dict(),
+                movetime::Int64=500, evalstartmove::Int64=1, engineoptions::Dict=Dict(),
                 variationlength::Int64=5, includeexistingcomment::Bool=false)
     tstart = time_ns()
 

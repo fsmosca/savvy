@@ -10,7 +10,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.22.0"    
+    s.version = "0.22.1"    
 
     @add_arg_table s begin
         "--engine"
@@ -251,11 +251,11 @@ function addmovenag(mygame, em_score, gm_score)
     elseif em_score >= 3.0 && gm_score <= 0.5
         addnag!(mygame, 4)
 
-    # Else add ?, ... from playable to bad score.
+    # Add ?, ... from playable to bad score.
     elseif gm_score < -1.0 && em_score >= -1.0
         addnag!(mygame, 2)
 
-    # Else add !, if game move is better by at least 5 cp than engine move.
+    # Add !, if game move is better by at least 5 cp than engine move.
     elseif gm_score - 0.05 >= em_score && abs(em_score) <= 3.0
         addnag!(mygame, 1)
     end
@@ -264,7 +264,7 @@ function addmovenag(mygame, em_score, gm_score)
 end
 
 
-"Read pgn file and analyze the positions in the game."
+"Read pgn file and analyze the positions in the game. Save the analysis in output file."
 function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
                 movetime::Int64=500, evalstartmove::Int64=1, engineoptions::Dict=Dict(),
                 variationlength::Int64=5, includeexistingcomment::Bool=false)
@@ -290,7 +290,7 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
         while !isatend(g)
             move = nextmove(g)
             bd = board(g)
-            gm_movesan = movetosan(bd, move)
+            gm_movesan = movetosan(bd, move)  # gm=game move
             myply = ply(mygame)
             mymovenum = Int(ceil(myply/2))
             existingcomment = comment(g.node)  # can be nothing
@@ -306,7 +306,7 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
 
             # Evaluate this position with the engine.
             bm, escore, pv, edepth = evaluate(engine, g, movetime)
-            em_movesan = movetosan(bd, bm)
+            em_movesan = movetosan(bd, bm)  # em=engine move
 
             # Prepare engine variation.
             pvlength = length(pv)

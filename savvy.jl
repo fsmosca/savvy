@@ -10,7 +10,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.22.1"    
+    s.version = "0.22.2"    
 
     @add_arg_table s begin
         "--engine"
@@ -18,7 +18,7 @@ function parse_commandline()
             arg_type = String
             required = true
         "--inpgn"
-            help = "Input your pgn filename."
+            help = "Input pgn filename."
             arg_type = String
             required = true
         "--outpgn"
@@ -26,7 +26,7 @@ function parse_commandline()
             arg_type = String
             default = "out.pgn"
         "--movetime"
-            help = "Time in mulliseconds to analyze each position in the game."
+            help = "Time in milliseconds to analyze each position in the game, note 1s=1000ms."
             arg_type = Int
             default = 500
         "--evalstartmove"
@@ -34,7 +34,7 @@ function parse_commandline()
             arg_type = Int
             default = 1
         "--engineoptions"
-            help = "--engineoptions \"Hash=128, Threads=1, Analysis Contempt=Off\""
+            help = "Engine options example: --engineoptions \"Hash=128, Threads=1, Analysis Contempt=Off\""
             arg_type = String
             default = ""
         "--variationlength"

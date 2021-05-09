@@ -10,7 +10,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.22.2"    
+    s.version = "0.23.0"    
 
     @add_arg_table s begin
         "--engine"
@@ -44,6 +44,9 @@ function parse_commandline()
         "--includeexistingcomment"
             help = "A flag to include existing comment in the output."
             action = :store_true
+        "--playername"
+            help = "An option to analyze the game of a playername. Example: --playername \"Carlsen, Magnus\""
+            arg_type = String
     end
 
     return parse_args(s)
@@ -267,7 +270,8 @@ end
 "Read pgn file and analyze the positions in the game. Save the analysis in output file."
 function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
                 movetime::Int64=500, evalstartmove::Int64=1, engineoptions::Dict=Dict(),
-                variationlength::Int64=5, includeexistingcomment::Bool=false)
+                variationlength::Int64=5, includeexistingcomment::Bool=false,
+                playername::Union{Nothing, String}=nothing)
     tstart = time_ns()
 
     # Init engine.
@@ -279,6 +283,13 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
     game_num = 0
 
     for g in gamesinfile(in_pgnfn; annotations=true)
+        # Analyze the game only if one of the players is the one specified in playername option.
+        if !isnothing(playername)
+            if playername != whiteplayer(g) && playername != blackplayer(g)
+                continue
+            end
+        end
+
         game_num += 1
         println("analyzing game $game_num ...")
 
@@ -447,7 +458,8 @@ function main()
         evalstartmove=parsed_args["evalstartmove"],
         engineoptions=optdict,
         variationlength=parsed_args["variationlength"],
-        includeexistingcomment=parsed_args["includeexistingcomment"]
+        includeexistingcomment=parsed_args["includeexistingcomment"],
+        playername=parsed_args["playername"]
     )
 
     return nothing

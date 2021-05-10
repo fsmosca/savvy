@@ -13,7 +13,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.24.0"    
+    s.version = "0.25.0"    
 
     @add_arg_table s begin
         "--engine"
@@ -64,6 +64,39 @@ function get_pkg_version(name::AbstractString)
         only
         _.version
     end
+end
+
+
+"Create mate comment and is applied when game and engine moves are the same."
+function create_matecomment(escore::Score, includeexistingcomment::Bool, existingcomment::Union{Nothing, String})::String
+    matecomment = ""    
+    movetomate = abs(escore.value)
+
+    # If side to move wins, subtract movetomate by 1. This comment is read after the game move is pushed.
+    if escore.value > 0            
+        movetomate -= 1
+        if movetomate == 0
+            if includeexistingcomment && !isnothing(existingcomment)
+                matecomment = "$existingcomment checkmate"
+            else
+                matecomment = "checkmate"
+            end
+        else
+            if includeexistingcomment && !isnothing(existingcomment)
+                matecomment = "$existingcomment mate in $(movetomate)"
+            else
+                matecomment = "mate in $(movetomate)"
+            end
+        end
+    else
+        if includeexistingcomment && !isnothing(existingcomment)
+            matecomment = "$existingcomment mated in $movetomate"
+        else
+            matecomment = "mated in $movetomate"
+        end
+    end
+
+    return matecomment
 end
 
 
@@ -408,32 +441,7 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
             else
                 # Add comment for the evaluation of game move. Use the engine analysis.
                 if escore.ismate
-                    # Read the mate comment after pushing the move.
-                    # If side to move wins, subtract movetomate by 1.
-                    movetomate = abs(escore.value)
-                    # Todo: Refactor code.
-                    if escore.value > 0
-                        movetomate -= 1
-                        if movetomate == 0
-                            if includeexistingcomment && !isnothing(existingcomment)
-                                matecomment = "$existingcomment checkmate"
-                            else
-                                matecomment = "checkmate"
-                            end
-                        else
-                            if includeexistingcomment && !isnothing(existingcomment)
-                                matecomment = "$existingcomment mate in $(movetomate - 1)"
-                            else
-                                matecomment = "mate in $(movetomate - 1)"
-                            end
-                        end
-                    else
-                        if includeexistingcomment && !isnothing(existingcomment)
-                            matecomment = "$existingcomment mated in $movetomate"
-                        else
-                            matecomment = "mated in $movetomate"
-                        end
-                    end
+                    matecomment = create_matecomment(escore, includeexistingcomment, existingcomment)
                     addcomment!(mygame, matecomment)
                 else
                     addcomment!(mygame, em_comment)

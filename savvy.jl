@@ -1,4 +1,7 @@
-using Chess, Chess.PGN, Chess.UCI, ArgParse
+using Chess, Chess.PGN, Chess.UCI
+using Pkg
+using ArgParse
+using Chain
 
 
 const VALUE_MATE = 32000
@@ -10,7 +13,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.23.0"    
+    s.version = "0.23.1"    
 
     @add_arg_table s begin
         "--engine"
@@ -50,6 +53,17 @@ function parse_commandline()
     end
 
     return parse_args(s)
+end
+
+
+"Get package version"
+function get_pkg_version(name::AbstractString)
+    @chain Pkg.dependencies() begin
+        values
+        [x for x in _ if x.name == name]
+        only
+        _.version
+    end
 end
 
 
@@ -441,6 +455,9 @@ end
 
 "Initialize some variables before starting to analyze the games in the input pgn file."
 function main()
+    println("Julia $VERSION")
+    println("Chess $(get_pkg_version("Chess"))")
+
     parsed_args = parse_commandline()
     println("Parsed args:")
     for (arg, val) in parsed_args

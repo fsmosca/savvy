@@ -13,7 +13,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.25.0"    
+    s.version = "0.25.1"    
 
     @add_arg_table s begin
         "--engine"
@@ -68,7 +68,7 @@ end
 
 
 "Create mate comment and is applied when game and engine moves are the same."
-function create_matecomment(escore::Score, includeexistingcomment::Bool, existingcomment::Union{Nothing, String})::String
+function matescorecomment(escore::Score, includeexistingcomment::Bool, existingcomment::Union{Nothing, String})::String
     matecomment = ""    
     movetomate = abs(escore.value)
 
@@ -101,9 +101,12 @@ end
 
 
 "Build comment from score and depth info"
-function createcomment(score::Float64, depth::Int64,
-                       existingcomment::Union{Nothing, String}=nothing,
-                       includeexistingcomment::Bool=false)::String
+function scoreanddepthcomment(
+    score::Float64,
+    depth::Int64,
+    existingcomment::Union{Nothing, String}=nothing,
+    includeexistingcomment::Bool=false
+)::String
     if includeexistingcomment && !isnothing(existingcomment)
         return "$existingcomment $score/$depth"
     end
@@ -377,8 +380,7 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
 
             em_score = centipawntopawn(escore.value, escore.ismate)
 
-            em_comment = createcomment(em_score, edepth, existingcomment,
-                                       includeexistingcomment)
+            em_comment = scoreanddepthcomment(em_score, edepth, existingcomment, includeexistingcomment)
 
             # If engine best move and game move are not the same, evaluate the game move too.
             if gm_movesan != em_movesan
@@ -391,8 +393,7 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
                 # Negate the score since we pushed the move before analyzing it.
                 gm_score = centipawntopawn(-gscore.value, gscore.ismate)
 
-                gm_comment = createcomment(gm_score, depth, existingcomment,
-                                           includeexistingcomment)
+                gm_comment = scoreanddepthcomment(gm_score, depth, existingcomment, includeexistingcomment)
 
                 # Add comment for the evaluation of game move.
                 if gscore.ismate
@@ -427,8 +428,7 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
                 end
 
                 # Add comment at the end of the variation.
-                adddata!(mygame.node, "comment",
-                         createcomment(em_score, edepth, nothing, false))
+                adddata!(mygame.node, "comment", scoreanddepthcomment(em_score, edepth, nothing, false))
 
                 # Restore to a node after inserting the variation.
                 for m in em_pv
@@ -441,7 +441,7 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
             else
                 # Add comment for the evaluation of game move. Use the engine analysis.
                 if escore.ismate
-                    matecomment = create_matecomment(escore, includeexistingcomment, existingcomment)
+                    matecomment = matescorecomment(escore, includeexistingcomment, existingcomment)
                     addcomment!(mygame, matecomment)
                 else
                     addcomment!(mygame, em_comment)

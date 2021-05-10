@@ -13,7 +13,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.23.1"    
+    s.version = "0.24.0"    
 
     @add_arg_table s begin
         "--engine"
@@ -413,10 +413,19 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
                     movetomate = abs(escore.value)
                     # Todo: Refactor code.
                     if escore.value > 0
-                        if includeexistingcomment && !isnothing(existingcomment)
-                            matecomment = "$existingcomment mate in $(movetomate - 1)"
+                        movetomate -= 1
+                        if movetomate == 0
+                            if includeexistingcomment && !isnothing(existingcomment)
+                                matecomment = "$existingcomment checkmate"
+                            else
+                                matecomment = "checkmate"
+                            end
                         else
-                            matecomment = "mate in $(movetomate - 1)"
+                            if includeexistingcomment && !isnothing(existingcomment)
+                                matecomment = "$existingcomment mate in $(movetomate - 1)"
+                            else
+                                matecomment = "mate in $(movetomate - 1)"
+                            end
                         end
                     else
                         if includeexistingcomment && !isnothing(existingcomment)

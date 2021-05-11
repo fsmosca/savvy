@@ -13,7 +13,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.25.1"    
+    s.version = "0.26.0"    
 
     @add_arg_table s begin
         "--engine"
@@ -317,6 +317,64 @@ function addmovenag(mygame, em_score, gm_score)
 end
 
 
+"""
+Get the threat of the game move.
+
+Push the game move, do null move and evaluate the resulting position. The returned engine
+bestmove will be the threat of the game move.
+"""
+function get_threatmove(e::Engine, g::Game, escore::Int, mt::Int)::Union{Nothing, String}
+    bmsan = nothing
+
+    # Calculate the threat move if current engine score is not winning yet.
+    if escore >= 3.0
+        return bmsan
+    end
+
+    # If game move is a capture do not calculate the threat move.
+    # Usually it is obvious that the same piece will move to escape the recapture.
+    # Also if game move is a check move, we will not calculate the threat move as
+    # the king will be captured if we do a null move.
+    nextmovesan = movetosan(board(g), nextmove(g))
+    if occursin("x", nextmovesan) || occursin("+", nextmovesan)
+        return bmsan
+    end
+
+    forward!(g)
+    bd = board(g)
+
+    # Check game termination.
+    if isterminal(board(g))
+        back!(g)
+        return bmsan
+    end
+
+    nbd = donullmove(bd)
+    ug = Game(nbd)
+
+    # Evaluate the position after the null move.
+    bm, score, _, _ = evaluate(e, ug, mt)
+    if score.ismate
+        mscore = matenumtocp(score.value)
+    else
+        mscore = score.value
+    end
+
+    # If the best move found is worth at least a pawn ahead consider it as a threat.    
+    if mscore > escore && mscore >= 1.0
+        # At this moment we do not consider a capture threat move as a threat as it is obvious.
+        bmsan = movetosan(nbd, bm)
+        if occursin("x", bmsan)
+            bmsan = nothing
+        end
+    end
+   
+    back!(g)
+
+    return bmsan
+end
+
+
 "Read pgn file and analyze the positions in the game. Save the analysis in output file."
 function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
                 movetime::Int64=500, evalstartmove::Int64=1, engineoptions::Dict=Dict(),
@@ -444,7 +502,13 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
                     matecomment = matescorecomment(escore, includeexistingcomment, existingcomment)
                     addcomment!(mygame, matecomment)
                 else
-                    addcomment!(mygame, em_comment)
+                    # Add threat move in the comment.
+                    threatmove = get_threatmove(engine, g, escore.value, movetime)
+                    if !isnothing(threatmove)
+                        addcomment!(mygame, "$em_comment ... threatening $threatmove")
+                    else
+                        addcomment!(mygame, em_comment)
+                    end
                 end
             end
 

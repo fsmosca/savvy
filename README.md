@@ -10,9 +10,18 @@ A julia script that analyzes positions in a chess game
 `julia savvy.jl --help`
 
 #### Analyze games
+Note the duration of analysis controlled by --movetime option is in milliseconds where 1 second = 1000 milliseconds.
 ```
 julia savvy.jl --engine ./engine/stockfish_13.exe --engineoptions "Hash=128, Threads=2" --inpgn ./pgn/2021-new-in-chess-classic.pgn --outpgn analyzed.pgn --movetime 500
 ```
+
+#### Analyze the games of a specific player
+There is an option that can be used to analyze the games of a specific player, example below.
+
+`--playername "Carlsen, Magnus"`
+
+#### Start the analysis at a given move number
+`--evalstartmove 12`
 
 ## Sample output
 ```

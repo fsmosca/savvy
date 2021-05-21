@@ -23,6 +23,9 @@ There is an option that can be used to analyze the games of a specific player, e
 #### Start the analysis at a given move number
 `--evalstartmove 12`
 
+#### End the analysis at a given move number
+`--evalendmove 30`
+
 ## Sample output
 ```
 [Event "New in Chess Classic Prelims 2021"]

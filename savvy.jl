@@ -13,7 +13,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.28.0"    
+    s.version = "0.28.1"    
 
     @add_arg_table s begin
         "--engine"
@@ -496,7 +496,7 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
                     end
                     addcomment!(mygame, matecomment)
                 else
-                    adddata!(mygame.node, "comment", gm_comment)
+                    addcomment!(mygame, gm_comment)
                 end
 
                 # Add NAG - Numeric_Annotation_Glyphs

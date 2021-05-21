@@ -13,7 +13,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.26.0"    
+    s.version = "0.27.0"    
 
     @add_arg_table s begin
         "--engine"
@@ -36,6 +36,10 @@ function parse_commandline()
             help = "The game move number where the engine starts its analysis."
             arg_type = Int
             default = 1
+        "--evalendmove"
+            help = "The game move number where the engine ends its analysis."
+            arg_type = Int
+            default = 1000
         "--engineoptions"
             help = "Engine options example: --engineoptions \"Hash=128, Threads=1, Analysis Contempt=Off\""
             arg_type = String
@@ -377,8 +381,9 @@ end
 
 "Read pgn file and analyze the positions in the game. Save the analysis in output file."
 function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
-                movetime::Int64=500, evalstartmove::Int64=1, engineoptions::Dict=Dict(),
-                variationlength::Int64=5, includeexistingcomment::Bool=false,
+                movetime::Int64=500, evalstartmove::Int64=1, evalendmove::Int64=1000,
+                engineoptions::Dict=Dict(), variationlength::Int64=5,
+                includeexistingcomment::Bool=false,
                 playername::Union{Nothing, String}=nothing)
     tstart = time_ns()
 
@@ -416,6 +421,13 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
 
             # If current move number is below evalstartmove don't analyze this position.
             if mymovenum < evalstartmove
+                domove!(mygame, move)  # save move to mygame
+                forward!(g)  # Push the move on the main board.
+                continue
+            end
+
+            # If current move number is above evalendmove don't analyze this position.
+            if mymovenum > evalendmove
                 domove!(mygame, move)  # save move to mygame
                 forward!(g)  # Push the move on the main board.
                 continue
@@ -554,6 +566,7 @@ function main()
         parsed_args["engine"],
         movetime=parsed_args["movetime"],
         evalstartmove=parsed_args["evalstartmove"],
+        evalendmove=parsed_args["evalendmove"],
         engineoptions=optdict,
         variationlength=parsed_args["variationlength"],
         includeexistingcomment=parsed_args["includeexistingcomment"],

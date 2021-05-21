@@ -13,7 +13,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.29.1"
+    s.version = "0.29.2"
 
     @add_arg_table s begin
         "--engine"
@@ -388,7 +388,7 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
                 engineoptions::Dict=Dict(), variationlength::Int64=5,
                 includeexistingcomment::Bool=false,
                 playername::Union{Nothing, String}=nothing,
-                analyzewinloss::Bool=false)
+                analyzewinloss::Bool=false, progversion::String="")
     tstart = time_ns()
 
     # Init engine.
@@ -563,7 +563,7 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
         end
 
         # Update header.
-        setheadervalue!(mygame, "Annotator", "$(engine.name) @$movetime ms/pos")
+        setheadervalue!(mygame, "Annotator", "savvy $progversion, $(engine.name) @$movetime ms/pos")
 
         open(out_pgnfn, "a+") do filehandle
             println(filehandle, gametopgn(mygame))
@@ -606,7 +606,8 @@ function main()
         variationlength=parsed_args["variationlength"],
         includeexistingcomment=parsed_args["includeexistingcomment"],
         playername=parsed_args["playername"],
-        analyzewinloss=parsed_args["analyzewinloss"]
+        analyzewinloss=parsed_args["analyzewinloss"],
+        progversion=progversion
     )
 
     return nothing

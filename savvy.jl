@@ -13,7 +13,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.28.1"    
+    s.version = "0.29.0"
 
     @add_arg_table s begin
         "--engine"
@@ -54,6 +54,9 @@ function parse_commandline()
         "--playername"
             help = "An option to analyze the game of a specified player name. Example: --playername \"Carlsen, Magnus\""
             arg_type = String
+        "--analyzewinloss"
+            help = "A flag to enable analyzing games which have 1-0 or 0-1 results."
+            action = :store_true
     end
 
     return parse_args(s)
@@ -384,7 +387,8 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
                 movetime::Int64=500, evalstartmove::Int64=1, evalendmove::Int64=1000,
                 engineoptions::Dict=Dict(), variationlength::Int64=5,
                 includeexistingcomment::Bool=false,
-                playername::Union{Nothing, String}=nothing)
+                playername::Union{Nothing, String}=nothing,
+                analyzewinloss::Bool=false)
     tstart = time_ns()
 
     # Init engine.
@@ -396,15 +400,25 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
     game_num = 0
 
     for g in gamesinfile(in_pgnfn; annotations=true)
+        game_num += 1
+        println("analyzing game $game_num between $(headervalue(g, "White")) and $(headervalue(g, "Black")) ...")
+
         # Analyze the game only if one of the players is the one specified in playername option.
         if !isnothing(playername)
             if playername != whiteplayer(g) && playername != blackplayer(g)
+                println("Don't analyze game $game_num, $playername is not playing in this game.")
                 continue
             end
         end
 
-        game_num += 1
-        println("analyzing game $game_num ...")
+        # Analyze only those games with 1-0 or 0-1 results.
+        if analyzewinloss
+            gameresult = headervalue(g, "Result")
+            if gameresult != "1-0" && gameresult != "0-1"
+                println("Don't analyze game $game_num, result $gameresult is not decisive.")
+                continue
+            end
+        end
 
         # Save annotated game to a new game and copy its header.
         mygame = Game()
@@ -590,7 +604,8 @@ function main()
         engineoptions=optdict,
         variationlength=parsed_args["variationlength"],
         includeexistingcomment=parsed_args["includeexistingcomment"],
-        playername=parsed_args["playername"]
+        playername=parsed_args["playername"],
+        analyzewinloss=parsed_args["analyzewinloss"]
     )
 
     return nothing

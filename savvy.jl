@@ -13,7 +13,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.27.1"    
+    s.version = "0.28.0"    
 
     @add_arg_table s begin
         "--engine"
@@ -417,19 +417,31 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
             gm_movesan = movetosan(bd, move)  # gm=game move
             myply = ply(mygame)
             mymovenum = Int(ceil(myply/2))
-            existingcomment = comment(g.node)  # can be nothing
+
+            existingcomment = nothing
+            if includeexistingcomment
+                forward!(g)
+                existingcomment = comment(g.node)
+                back!(g)
+            end
 
             # If current move number is below evalstartmove don't analyze this position.
             if mymovenum < evalstartmove
                 domove!(mygame, move)  # save move to mygame
-                forward!(g)  # Push the move on the main board.
+                if includeexistingcomment && !isnothing(existingcomment)
+                    addcomment!(mygame, existingcomment)
+                end                
+                forward!(g)  # Push the move on the main board.            
                 continue
             end
 
             # If current move number is above evalendmove don't analyze this position.
             if mymovenum > evalendmove
                 domove!(mygame, move)  # save move to mygame
-                forward!(g)  # Push the move on the main board.
+                if includeexistingcomment && !isnothing(existingcomment)
+                    addcomment!(mygame, existingcomment)
+                end                
+                forward!(g)
                 continue
             end
 
@@ -470,9 +482,17 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
                     # Read the mate comment after pushing the move.
                     movetomate = abs(gscore.value)
                     if -gscore.value > 0
-                        matecomment = "mate in $movetomate"
+                        if includeexistingcomment && !isnothing(existingcomment)
+                            matecomment = "$existingcomment mate in $movetomate"
+                        else
+                            matecomment = "mate in $movetomate"
+                        end
                     else
-                        matecomment = "mated in $movetomate"
+                        if includeexistingcomment && !isnothing(existingcomment)
+                            matecomment = "$existingcomment mated in $movetomate"
+                        else
+                            matecomment = "mated in $movetomate"
+                        end
                     end
                     addcomment!(mygame, matecomment)
                 else

@@ -1,32 +1,39 @@
 # Savvy
 A julia script that analyzes positions in a chess game
 
-## Setup
+## 1. &nbsp; Setup
 * Install [Julia](https://julialang.org/downloads/)
 * Use the [Julia Chess](https://github.com/romstad/Chess.jl) package
 
-## Command line
-#### Help
+## 2. &nbsp; Command line
+#### 2.1. &nbsp; Help
 `julia savvy.jl --help`
 
-#### Analyze games
+#### 2.2. &nbsp; Analyze games
 Note the duration of analysis controlled by --movetime option is in milliseconds where 1 second = 1000 milliseconds.
 ```
 julia savvy.jl --engine ./engine/stockfish_13.exe --engineoptions "Hash=128, Threads=2" --inpgn ./pgn/2021-new-in-chess-classic.pgn --outpgn analyzed.pgn --movetime 500
 ```
 
-#### Analyze the games of a specific player
-There is an option that can be used to analyze the games of a specific player, example below.
-
+#### 2.3. &nbsp; Analyze the games of a specific player
 `--playername "Carlsen, Magnus"`
 
-#### Start the analysis at a given move number
+#### 2.4. &nbsp; Start the analysis at a given move number
 `--evalstartmove 12`
 
-#### End the analysis at a given move number
+#### 2.5. &nbsp; End the analysis at a given move number
 `--evalendmove 30`
 
-## Sample output
+#### 2.6. &nbsp; Analyze only those games with 1-0 or 0-1 results
+`--analyzewinloss`
+
+#### 2.7. &nbsp; Analyze games with decisive results by a specific player
+`--playername "Carlsen, Magnus" --analyzewinloss`
+
+#### 2.8. &nbsp; Analyze games with decisive results in the opening only
+`--evalstartmove 4 --evalendmove 24 --analyzewinloss`
+
+## 3. &nbsp; Sample output
 ```
 [Event "New in Chess Classic Prelims 2021"]
 [Site "http://www.chessbomb.com"]
@@ -91,5 +98,5 @@ There is an option that can be used to analyze the games of a specific player, e
 60. Kh6 {mate in 10} 1-0
 ```
 
-## Credits
+## 4. &nbsp; Credits
 * [Julia Chess](https://github.com/romstad/Chess.jl)

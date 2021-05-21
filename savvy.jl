@@ -13,7 +13,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.29.2"
+    s.version = "0.29.3"
 
     @add_arg_table s begin
         "--engine"
@@ -535,7 +535,7 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
                 adddata!(mygame.node, "comment", scoreanddepthcomment(em_score, edepth, nothing, false))
 
                 # Restore to a node after inserting the variation.
-                for m in em_pv
+                for _ in em_pv
                     back!(mygame)
                 end
                 

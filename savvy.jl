@@ -13,7 +13,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.29.0"
+    s.version = "0.29.1"
 
     @add_arg_table s begin
         "--engine"
@@ -59,7 +59,7 @@ function parse_commandline()
             action = :store_true
     end
 
-    return parse_args(s)
+    return parse_args(s), s.version
 end
 
 
@@ -585,7 +585,8 @@ function main()
     println("Julia $VERSION")
     println("Chess $(get_pkg_version("Chess"))")
 
-    parsed_args = parse_commandline()
+    parsed_args, progversion = parse_commandline()
+    println("savvy $progversion")
     println("Parsed args:")
     for (arg, val) in parsed_args
         println("    $arg : $val")

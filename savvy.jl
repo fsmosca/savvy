@@ -13,19 +13,19 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.27.0"    
+    s.version = "0.27.1"    
 
     @add_arg_table s begin
         "--engine"
-            help = "The engine file or path/file of the engine used to analyze the game."
+            help = "The filename or path/filename of the engine that will be used to analyze the game."
             arg_type = String
             required = true
         "--inpgn"
-            help = "Input pgn filename."
+            help = "This is the input pgn filename where games will be analyzed."
             arg_type = String
             required = true
         "--outpgn"
-            help = "Output pgn filename with analysis."
+            help = "The output pgn filename where position analysis will be saved."
             arg_type = String
             default = "out.pgn"
         "--movetime"
@@ -41,18 +41,18 @@ function parse_commandline()
             arg_type = Int
             default = 1000
         "--engineoptions"
-            help = "Engine options example: --engineoptions \"Hash=128, Threads=1, Analysis Contempt=Off\""
+            help = "This is the engine options, example: --engineoptions \"Hash=128, Threads=1, Analysis Contempt=Off\""
             arg_type = String
             default = ""
         "--variationlength"
-            help = "The length of variation or number of moves in the variation to be saved in annotated game."
+            help = "The length of engine PV (principal variation) or number of moves in the PV to be saved in the annotated game."
             arg_type = Int
             default = 5
         "--includeexistingcomment"
-            help = "A flag to include existing comment in the output."
+            help = "A flag to include existing comment in the pgn output."
             action = :store_true
         "--playername"
-            help = "An option to analyze the game of a playername. Example: --playername \"Carlsen, Magnus\""
+            help = "An option to analyze the game of a specified player name. Example: --playername \"Carlsen, Magnus\""
             arg_type = String
     end
 

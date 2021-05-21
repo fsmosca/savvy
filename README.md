@@ -1,5 +1,5 @@
 # Savvy
-A julia script that analyzes positions in a chess game
+A julia script that reads a chess pgn file, analyze the positions in the game and save the annotated game to a file.
 
 ## 1. &nbsp; Setup
 * Install [Julia](https://julialang.org/downloads/)

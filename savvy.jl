@@ -13,7 +13,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.31.0"
+    s.version = "0.31.1"
 
     @add_arg_table s begin
         "--engine"
@@ -172,7 +172,7 @@ end
 
 
 "Evaluate the board position with an engine and returns bestmove, bestscore pv and depth."
-function evaluate(engine, game, movetime::Int64)
+function evaluate(engine::Engine, game::Game, movetime::Int64)
     bm = nothing
     score = nothing
     pv = nothing
@@ -301,7 +301,7 @@ Add move NAG depending on the game move score and engine best move score.
 
 Ref.: NAG - https://en.wikipedia.org/wiki/Numeric_Annotation_Glyphs
 """
-function addmovenag(mygame, em_score, gm_score, gscore::Score)
+function addmovenag(mygame::Game, em_score::Float64, gm_score::Float64, gscore::Score)::Nothing
     # Add ?? if game move score turns from playable to losing.
     # If game move score is 3 or more pawns behind but engine score is only 1 pawn behind.
     if gm_score <= -3.0 && em_score >= -1.0
@@ -334,7 +334,7 @@ Get the threat of the game move.
 Push the game move, do null move and evaluate the resulting position. The returned engine
 bestmove will be the threat of the game move.
 """
-function get_threatmove(e::Engine, g::Game, escore::Int, mt::Int)::Union{Nothing, String}
+function get_threatmove(e::Engine, g::Game, escore::Int, mt::Int64)::Union{Nothing, String}
     bmsan = nothing
 
     # Calculate the threat move if current engine score is not winning yet.

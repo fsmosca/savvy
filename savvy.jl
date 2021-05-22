@@ -13,7 +13,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.30.0"
+    s.version = "0.31.0"
 
     @add_arg_table s begin
         "--engine"
@@ -301,7 +301,7 @@ Add move NAG depending on the game move score and engine best move score.
 
 Ref.: NAG - https://en.wikipedia.org/wiki/Numeric_Annotation_Glyphs
 """
-function addmovenag(mygame, em_score, gm_score)
+function addmovenag(mygame, em_score, gm_score, gscore::Score)
     # Add ?? if game move score turns from playable to losing.
     # If game move score is 3 or more pawns behind but engine score is only 1 pawn behind.
     if gm_score <= -3.0 && em_score >= -1.0
@@ -309,6 +309,10 @@ function addmovenag(mygame, em_score, gm_score)
 
     # Add ?? if game move is just equal or less from a winning score.
     elseif em_score >= 3.0 && gm_score <= 0.5
+        addnag!(mygame, 4)
+
+    # Add ?? if game move score is to be mated and engine move is only a queen behind or better.
+    elseif gscore.ismate && gm_score < 0 && em_score >= -10.0
         addnag!(mygame, 4)
 
     # Add ?, ... from playable to bad score.
@@ -514,7 +518,7 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
                 end
 
                 # Add NAG - Numeric_Annotation_Glyphs
-                addmovenag(mygame, em_score, gm_score)
+                addmovenag(mygame, em_score, gm_score, gscore)
 
                 # Insert engine move as variation to mygame.
 

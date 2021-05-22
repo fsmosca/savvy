@@ -13,7 +13,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.31.1"
+    s.version = "0.32.0"
 
     @add_arg_table s begin
         "--engine"
@@ -31,7 +31,9 @@ function parse_commandline()
         "--movetime"
             help = "Time in milliseconds to analyze each position in the game, note 1s=1000ms."
             arg_type = Int
-            default = 500
+        "--depth"
+            help = "The maximum depth that the engine is allowed to analyze."
+            arg_type = Int
         "--evalstartmove"
             help = "The game move number where the engine starts its analysis."
             arg_type = Int
@@ -172,7 +174,7 @@ end
 
 
 "Evaluate the board position with an engine and returns bestmove, bestscore pv and depth."
-function evaluate(engine::Engine, game::Game, movetime::Int64)
+function evaluate(engine::Engine, game::Game, movetime::Union{Nothing, Int64}, searchdepth::Union{Nothing, Int})
     bm = nothing
     score = nothing
     pv = nothing
@@ -187,7 +189,14 @@ function evaluate(engine::Engine, game::Game, movetime::Int64)
     end
 
     setboard(engine, game)
-    sendcommand(engine, "go movetime $movetime")
+
+    if isnothing(searchdepth)
+        sendcommand(engine, "go movetime $movetime")
+    elseif isnothing(movetime)
+        sendcommand(engine, "go depth $searchdepth")
+    else
+        sendcommand(engine, "go movetime $movetime depth $searchdepth")
+    end
 
     movecount = 0
 
@@ -334,7 +343,13 @@ Get the threat of the game move.
 Push the game move, do null move and evaluate the resulting position. The returned engine
 bestmove will be the threat of the game move.
 """
-function get_threatmove(e::Engine, g::Game, escore::Int, mt::Int64)::Union{Nothing, String}
+function get_threatmove(
+    e::Engine, 
+    g::Game, 
+    escore::Int, 
+    mt::Union{Nothing, Int64}, 
+    searchdepth::Union{Nothing, Int}
+    )::Union{Nothing, String}
     bmsan = nothing
 
     # Calculate the threat move if current engine score is not winning yet.
@@ -364,7 +379,7 @@ function get_threatmove(e::Engine, g::Game, escore::Int, mt::Int64)::Union{Nothi
     ug = Game(nbd)
 
     # Evaluate the position after the null move.
-    bm, score, _, _ = evaluate(e, ug, mt)
+    bm, score, _, _ = evaluate(e, ug, mt, searchdepth)
     if score.ismate
         mscore = matenumtocp(score.value)
     else
@@ -388,7 +403,9 @@ end
 
 "Read pgn file and analyze the positions in the game. Save the analysis in output file."
 function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
-                movetime::Int64=500, evalstartmove::Int64=1, evalendmove::Int64=1000,
+                movetime::Union{Nothing, Int64}=nothing, searchdepth::Union{Nothing, Int}=nothing,
+                evalstartmove::Int64=1,
+                evalendmove::Int64=1000,
                 engineoptions::Dict=Dict(), variationlength::Int64=5,
                 includeexistingcomment::Bool=false,
                 playername::Union{Nothing, String}=nothing,
@@ -466,7 +483,7 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
             domove!(mygame, move)  # save move to mygame
 
             # Evaluate this position with the engine.
-            bm, escore, pv, edepth = evaluate(engine, g, movetime)
+            bm, escore, pv, edepth = evaluate(engine, g, movetime, searchdepth)
             em_movesan = movetosan(bd, bm)  # em=engine move
 
             # Prepare engine variation.
@@ -486,7 +503,7 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
             if gm_movesan != em_movesan
                 # Push the move and evaluate.
                 forward!(g)
-                _, gscore, _, depth = evaluate(engine, g, movetime)
+                _, gscore, _, depth = evaluate(engine, g, movetime, searchdepth)
                 # Restore the position.
                 back!(g)
 
@@ -553,7 +570,7 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
                     addcomment!(mygame, matecomment)
                 else
                     # Add threat move in the comment.
-                    threatmove = get_threatmove(engine, g, escore.value, movetime)
+                    threatmove = get_threatmove(engine, g, escore.value, movetime, searchdepth)
                     if !isnothing(threatmove)
                         addcomment!(mygame, "$em_comment ... threatening $threatmove")
                     else
@@ -566,8 +583,15 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
             
         end
 
-        # Update header.
-        setheadervalue!(mygame, "Annotator", "savvy $progversion, $(engine.name) @$movetime ms/pos")
+        # Update Annotator tag.
+        if isnothing(searchdepth)
+            anno = "@$movetime ms per pos"
+        elseif isnothing(movetime)
+            anno = "@depth $searchdepth per pos"
+        else
+            anno = "@$movetime ms and depth $searchdepth per pos"
+        end
+        setheadervalue!(mygame, "Annotator", "savvy $progversion, $(engine.name) $anno")
 
         open(out_pgnfn, "a+") do filehandle
             println(filehandle, gametopgn(mygame))
@@ -596,6 +620,15 @@ function main()
         println("    $arg : $val")
     end
 
+    movetime = parsed_args["movetime"]
+    searchdepth = parsed_args["depth"]
+
+    # If movetime and depth are not specified, set movetime to 1000 ms.
+    if isnothing(movetime) && isnothing(searchdepth)
+        movetime = 1000
+        println("Warning, movetime and depth are not specified, set movetime to $movetime ms.")
+    end
+
     # Convert engine options string to dictionary.
     optdict = optionstringtodict(parsed_args["engineoptions"])
 
@@ -603,7 +636,8 @@ function main()
         parsed_args["inpgn"],
         parsed_args["outpgn"],
         parsed_args["engine"],
-        movetime=parsed_args["movetime"],
+        movetime=movetime,
+        searchdepth=searchdepth,
         evalstartmove=parsed_args["evalstartmove"],
         evalendmove=parsed_args["evalendmove"],
         engineoptions=optdict,

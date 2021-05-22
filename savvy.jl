@@ -13,7 +13,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.29.3"
+    s.version = "0.30.0"
 
     @add_arg_table s begin
         "--engine"
@@ -90,16 +90,16 @@ function matescorecomment(escore::Score, includeexistingcomment::Bool, existingc
             end
         else
             if includeexistingcomment && !isnothing(existingcomment)
-                matecomment = "$existingcomment mate in $(movetomate)"
+                matecomment = "$existingcomment mated in $(movetomate)"
             else
-                matecomment = "mate in $(movetomate)"
+                matecomment = "mated in $(movetomate)"
             end
         end
     else
         if includeexistingcomment && !isnothing(existingcomment)
-            matecomment = "$existingcomment mated in $movetomate"
+            matecomment = "$existingcomment mate in $movetomate"
         else
-            matecomment = "mated in $movetomate"
+            matecomment = "mate in $movetomate"
         end
     end
 
@@ -495,7 +495,7 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
                 if gscore.ismate
                     # Read the mate comment after pushing the move.
                     movetomate = abs(gscore.value)
-                    if -gscore.value > 0
+                    if gscore.value > 0
                         if includeexistingcomment && !isnothing(existingcomment)
                             matecomment = "$existingcomment mate in $movetomate"
                         else

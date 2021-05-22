@@ -8,6 +8,57 @@ A julia script that reads a chess pgn file, analyze the positions in the game an
 ## 2. &nbsp; Command line
 #### 2.1. &nbsp; Help
 `julia savvy.jl --help`
+```julia
+Julia 1.6.1
+Chess 0.7.0
+usage: savvy --engine ENGINE --inpgn INPGN [--outpgn OUTPGN]     
+             [--movetime MOVETIME] [--depth DEPTH]
+             [--evalstartmove EVALSTARTMOVE]
+             [--evalendmove EVALENDMOVE]
+             [--engineoptions ENGINEOPTIONS]
+             [--variationlength VARIATIONLENGTH]
+             [--includeexistingcomment] [--playername PLAYERNAME]
+             [--analyzewinloss] [--version] [-h]
+
+Analyze positions in the game and output annotated game.
+
+optional arguments:
+  --engine ENGINE       The filename or path/filename of the engine
+                        that will be used to analyze the game.
+  --inpgn INPGN         This is the input pgn filename where games
+                        will be analyzed.
+  --outpgn OUTPGN       The output pgn filename where position
+                        analysis will be saved. (default: "out.pgn")
+  --movetime MOVETIME   Time in milliseconds to analyze each position
+                        in the game, note 1s=1000ms. (type: Int64)
+  --depth DEPTH         The maximum depth that the engine is allowed
+                        to analyze. (type: Int64)
+  --evalstartmove EVALSTARTMOVE
+                        The game move number where the engine starts
+                        its analysis. (type: Int64, default: 1)
+  --evalendmove EVALENDMOVE
+                        The game move number where the engine ends its
+                        analysis. (type: Int64, default: 1000)
+  --engineoptions ENGINEOPTIONS
+                        This is the engine options, example:
+                        --engineoptions "Hash=128, Threads=1, Analysis
+                        Contempt=Off" (default: "")
+  --variationlength VARIATIONLENGTH
+                        The length of engine PV (principal variation)
+                        or number of moves in the PV to be saved in
+                        the annotated game. (type: Int64, default: 5)
+  --includeexistingcomment
+                        A flag to include existing comment in the pgn
+                        output.
+  --playername PLAYERNAME
+                        An option to analyze the game of a specified
+                        player name. Example: --playername "Carlsen,
+                        Magnus"
+  --analyzewinloss      A flag to enable analyzing games which have
+                        1-0 or 0-1 results.
+  --version             show version information and exit
+  -h, --help            show this help message and exit
+```
 
 #### 2.2. &nbsp; Analyze games
 Note the duration of analysis controlled by --movetime option is in milliseconds where 1 second = 1000 milliseconds.
@@ -32,6 +83,17 @@ julia savvy.jl --engine ./engine/stockfish_13.exe --engineoptions "Hash=128, Thr
 
 #### 2.8. &nbsp; Analyze games with decisive results in the opening only
 `--evalstartmove 4 --evalendmove 24 --analyzewinloss`
+
+#### 2.9. &nbsp; Analyze games up to depth 18
+`--depth 18`
+
+#### 2.10. &nbsp; Analyze games up to 5 seconds
+1 second = 1000 milliseconds, movetime is in milliseconds.  
+`--movetime 5000`
+
+#### 2.11. &nbsp; Analyze games at depth 16 and 1s
+The engine will stop its analysis when one of the conditions is reached first.  
+`--movetime 1000 --depth 16`
 
 ## 3. &nbsp; Sample output
 ```

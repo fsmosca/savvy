@@ -18,16 +18,17 @@ usage: savvy --engine ENGINE --inpgn INPGN [--outpgn OUTPGN]
              [--engineoptions ENGINEOPTIONS]
              [--variationlength VARIATIONLENGTH]
              [--includeexistingcomment] [--playername PLAYERNAME]
-             [--analyzewinloss] [--version] [-h]
+             [--analyzewin] [--analyzedraw] [--analyzewhite]     
+             [--analyzeblack] [--analyzeloss] [--version] [-h]   
 
 Analyze positions in the game and output annotated game.
 
 optional arguments:
   --engine ENGINE       The filename or path/filename of the engine
-                        that will be used to analyze the game.
-  --inpgn INPGN         This is the input pgn filename where games
+                        that will be used to analyze the game.     
+  --inpgn INPGN         This is the input pgn filename where games  
                         will be analyzed.
-  --outpgn OUTPGN       The output pgn filename where position
+  --outpgn OUTPGN       The output pgn filename where position      
                         analysis will be saved. (default: "out.pgn")
   --movetime MOVETIME   Time in milliseconds to analyze each position
                         in the game, note 1s=1000ms. (type: Int64)
@@ -54,8 +55,20 @@ optional arguments:
                         An option to analyze the game of a specified
                         player name. Example: --playername "Carlsen,
                         Magnus"
-  --analyzewinloss      A flag to enable analyzing games which have
-                        1-0 or 0-1 results.
+  --analyzewin          A flag to enable analyzing games which have
+                        1-0 or 0-1 results or when a specified player
+                        name won the game.
+  --analyzedraw         A flag to enable analyzing games which have
+                        1/2-1/2 results only.
+  --analyzewhite        A flag to only analyze the game of a player
+                        name when this player is playing white. This
+                        is useful when --playername option is used.
+  --analyzeblack        A flag to only analyze the game of a player
+                        name when this player is playing black. This
+                        is useful when --playername option is used.
+  --analyzeloss         A flag to enable analyzing games where player
+                        name loses the game. This is useful when
+                        --playername option is used.
   --version             show version information and exit
   -h, --help            show this help message and exit
 ```
@@ -76,13 +89,14 @@ julia savvy.jl --engine ./engine/stockfish_13.exe --engineoptions "Hash=128, Thr
 `--evalendmove 30`
 
 #### 2.6. &nbsp; Analyze only those games with 1-0 or 0-1 results
-`--analyzewinloss`
+`--analyzewin` or  
+`--analyzeloss`
 
 #### 2.7. &nbsp; Analyze games with decisive results by a specific player
-`--playername "Carlsen, Magnus" --analyzewinloss`
+`--playername "Carlsen, Magnus" --analyzewin --analyzeloss`
 
 #### 2.8. &nbsp; Analyze games with decisive results in the opening only
-`--evalstartmove 4 --evalendmove 24 --analyzewinloss`
+`--evalstartmove 4 --evalendmove 24 --analyzewin --analyzeloss`
 
 #### 2.9. &nbsp; Analyze games up to depth 18
 `--depth 18`
@@ -94,6 +108,15 @@ julia savvy.jl --engine ./engine/stockfish_13.exe --engineoptions "Hash=128, Thr
 #### 2.11. &nbsp; Analyze games at depth 16 and 1s
 The engine will stop its analysis when one of the conditions is reached first.  
 `--movetime 1000 --depth 16`
+
+#### 2.12. &nbsp; Analyze games of a player where the player lost
+`--playername "player name" --analyzeloss`
+
+#### 2.13. &nbsp; Analyze games of a player where the player won as black
+`--playername "Carlsen, Magnus" --analyzewin --analyzeblack`
+
+#### 2.14. &nbsp; Analyze games of a player where the player draws as black
+`--playername "Carlsen, Magnus" --analyzedraw --analyzeblack`
 
 ## 3. &nbsp; Sample output
 ```

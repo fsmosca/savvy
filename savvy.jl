@@ -13,7 +13,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.33.0"
+    s.version = "0.34.0"
 
     @add_arg_table s begin
         "--engine"
@@ -61,6 +61,12 @@ function parse_commandline()
             action = :store_true
         "--analyzedraw"
             help = "A flag to enable analyzing games which have 1/2-1/2 results only."
+            action = :store_true
+        "--analyzewhite"
+            help = "A flag to only analyze the game of a player name when this player is playing white. This is useful when --playername option is used."
+            action = :store_true
+        "--analyzeblack"
+            help = "A flag to only analyze the game of a player name when this player is playing black. This is useful when --playername option is used."
             action = :store_true
     end
 
@@ -406,14 +412,19 @@ end
 
 "Read pgn file and analyze the positions in the game. Save the analysis in output file."
 function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
-                movetime::Union{Nothing, Int64}=nothing, searchdepth::Union{Nothing, Int}=nothing,
+                movetime::Union{Nothing, Int64}=nothing,
+                searchdepth::Union{Nothing, Int}=nothing,
                 evalstartmove::Int64=1,
                 evalendmove::Int64=1000,
-                engineoptions::Dict=Dict(), variationlength::Int64=5,
+                engineoptions::Dict=Dict(),
+                variationlength::Int64=5,
                 includeexistingcomment::Bool=false,
                 playername::Union{Nothing, String}=nothing,
-                analyzewinloss::Bool=false, progversion::String="",
-                analyzedraw::Bool=false)
+                analyzewinloss::Bool=false,
+                progversion::String="",
+                analyzedraw::Bool=false,
+                analyzewhite::Bool=false,
+                analyzeblack::Bool=false)
     tstart = time_ns()
 
     # Init engine.
@@ -432,6 +443,16 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
         if !isnothing(playername)
             if playername != whiteplayer(g) && playername != blackplayer(g)
                 println("Don't analyze game $game_num, $playername is not playing in this game.")
+                continue
+            end
+            
+            # Don't analyze this game if player is playing the white side and analyzeblack is true.
+            if analyzeblack && !analyzewhite && playername == whiteplayer(g)
+                println("Don't analyze game $game_num, $playername is not playing the black side.")
+                continue
+            # Don't analyze this game if player is playing the black side and analyzewhite is true.
+            elseif analyzewhite && !analyzeblack && playername == blackplayer(g)
+                println("Don't analyze game $game_num, $playername is not playing the white side.")
                 continue
             end
         end
@@ -658,6 +679,8 @@ function main()
         analyzewinloss=parsed_args["analyzewinloss"],
         progversion=progversion,
         analyzedraw=parsed_args["analyzedraw"],
+        analyzewhite=parsed_args["analyzewhite"],
+        analyzeblack=parsed_args["analyzeblack"]
     )
 
     return nothing

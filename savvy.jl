@@ -13,7 +13,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.34.0"
+    s.version = "0.35.0"
 
     @add_arg_table s begin
         "--engine"
@@ -56,8 +56,8 @@ function parse_commandline()
         "--playername"
             help = "An option to analyze the game of a specified player name. Example: --playername \"Carlsen, Magnus\""
             arg_type = String
-        "--analyzewinloss"
-            help = "A flag to enable analyzing games which have 1-0 or 0-1 results."
+        "--analyzewin"
+            help = "A flag to enable analyzing games which have 1-0 or 0-1 results or when a specified player name won the game."
             action = :store_true
         "--analyzedraw"
             help = "A flag to enable analyzing games which have 1/2-1/2 results only."
@@ -67,6 +67,9 @@ function parse_commandline()
             action = :store_true
         "--analyzeblack"
             help = "A flag to only analyze the game of a player name when this player is playing black. This is useful when --playername option is used."
+            action = :store_true
+        "--analyzeloss"
+            help = "A flag to enable analyzing games where player name loses the game. This is useful when --playername option is used."
             action = :store_true
     end
 
@@ -420,11 +423,12 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
                 variationlength::Int64=5,
                 includeexistingcomment::Bool=false,
                 playername::Union{Nothing, String}=nothing,
-                analyzewinloss::Bool=false,
+                analyzewin::Bool=false,
                 progversion::String="",
                 analyzedraw::Bool=false,
                 analyzewhite::Bool=false,
-                analyzeblack::Bool=false)
+                analyzeblack::Bool=false,
+                analyzeloss::Bool=false)
     tstart = time_ns()
 
     # Init engine.
@@ -438,6 +442,7 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
     for g in gamesinfile(in_pgnfn; annotations=true)
         game_num += 1
         println("analyzing game $game_num between $(headervalue(g, "White")) and $(headervalue(g, "Black")) ...")
+        gameresult = headervalue(g, "Result")
 
         # Analyze the game only if one of the players is the one specified in playername option.
         if !isnothing(playername)
@@ -455,18 +460,38 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
                 println("Don't analyze game $game_num, $playername is not playing the white side.")
                 continue
             end
+
+            # Don't analyze this game if analyzeloss flag is true and player does not lose.
+            if analyzeloss && !analyzewin && !analyzedraw
+                if playername == whiteplayer(g) && gameresult != "0-1" 
+                    println("Don't analyze game $game_num, $playername playing white did not lose this game.")
+                    continue
+                elseif playername == blackplayer(g) && gameresult != "1-0" 
+                    println("Don't analyze game $game_num, $playername playing black did not lose this game.")
+                    continue
+                end
+            end
+
+            # Don't analyze this game if analyzewin flag is true and player does not win.
+            if analyzewin && !analyzedraw && !analyzeloss
+                if playername == whiteplayer(g) && gameresult != "1-0" 
+                    println("Don't analyze game $game_num, $playername playing white did not win this game.")
+                    continue
+                elseif playername == blackplayer(g) && gameresult != "0-1"
+                    println("Don't analyze game $game_num, $playername playing black did not win this game.")
+                    continue
+                end
+            end
         end
 
         # Analyze only those games with 1-0 or 0-1 results.
-        if analyzewinloss && !analyzedraw
-            gameresult = headervalue(g, "Result")
+        if (analyzewin || analyzeloss) && !analyzedraw
             if gameresult != "1-0" && gameresult != "0-1"
                 println("Don't analyze game $game_num, result $gameresult is not decisive.")
                 continue
             end
         # Analyze only those games with 1/2-1/2 results.
-        elseif analyzedraw && !analyzewinloss
-            gameresult = headervalue(g, "Result")
+        elseif analyzedraw && !(analyzewin || analyzeloss)
             if gameresult != "1/2-1/2"
                 println("Don't analyze game $game_num, result $gameresult is not a draw.")
                 continue
@@ -676,11 +701,12 @@ function main()
         variationlength=parsed_args["variationlength"],
         includeexistingcomment=parsed_args["includeexistingcomment"],
         playername=parsed_args["playername"],
-        analyzewinloss=parsed_args["analyzewinloss"],
+        analyzewin=parsed_args["analyzewin"],
         progversion=progversion,
         analyzedraw=parsed_args["analyzedraw"],
         analyzewhite=parsed_args["analyzewhite"],
-        analyzeblack=parsed_args["analyzeblack"]
+        analyzeblack=parsed_args["analyzeblack"],
+        analyzeloss=parsed_args["analyzeloss"]
     )
 
     return nothing

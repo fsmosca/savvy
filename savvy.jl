@@ -13,7 +13,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.32.0"
+    s.version = "0.33.0"
 
     @add_arg_table s begin
         "--engine"
@@ -58,6 +58,9 @@ function parse_commandline()
             arg_type = String
         "--analyzewinloss"
             help = "A flag to enable analyzing games which have 1-0 or 0-1 results."
+            action = :store_true
+        "--analyzedraw"
+            help = "A flag to enable analyzing games which have 1/2-1/2 results only."
             action = :store_true
     end
 
@@ -409,7 +412,8 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
                 engineoptions::Dict=Dict(), variationlength::Int64=5,
                 includeexistingcomment::Bool=false,
                 playername::Union{Nothing, String}=nothing,
-                analyzewinloss::Bool=false, progversion::String="")
+                analyzewinloss::Bool=false, progversion::String="",
+                analyzedraw::Bool=false)
     tstart = time_ns()
 
     # Init engine.
@@ -433,10 +437,17 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
         end
 
         # Analyze only those games with 1-0 or 0-1 results.
-        if analyzewinloss
+        if analyzewinloss && !analyzedraw
             gameresult = headervalue(g, "Result")
             if gameresult != "1-0" && gameresult != "0-1"
                 println("Don't analyze game $game_num, result $gameresult is not decisive.")
+                continue
+            end
+        # Analyze only those games with 1/2-1/2 results.
+        elseif analyzedraw && !analyzewinloss
+            gameresult = headervalue(g, "Result")
+            if gameresult != "1/2-1/2"
+                println("Don't analyze game $game_num, result $gameresult is not a draw.")
                 continue
             end
         end
@@ -645,7 +656,8 @@ function main()
         includeexistingcomment=parsed_args["includeexistingcomment"],
         playername=parsed_args["playername"],
         analyzewinloss=parsed_args["analyzewinloss"],
-        progversion=progversion
+        progversion=progversion,
+        analyzedraw=parsed_args["analyzedraw"],
     )
 
     return nothing

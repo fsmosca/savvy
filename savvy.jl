@@ -14,7 +14,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.36.0"
+    s.version = "0.37.0"
 
     @add_arg_table s begin
         "--engine"
@@ -544,14 +544,8 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
             bm, escore, pv, edepth = evaluate(engine, g, movetime, searchdepth)
             em_movesan = movetosan(bd, bm)  # em=engine move
 
-            # Prepare engine variation.
-            pvlength = length(pv)
-
-            # If score is mate show all the moves.
-            if escore.ismate
-                variationlength = pvlength
-            end
-            em_pv = pv[1 : min(variationlength, length(pv))]
+            # Prepare engine variation. If score is mate show all moves in the pv.
+            em_pv = pv[1 : min(escore.ismate ? length(pv) : variationlength, length(pv))]
 
             em_score = centipawntopawn(escore.value, escore.ismate)
 

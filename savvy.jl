@@ -5,6 +5,7 @@ using Chain
 
 
 const VALUE_MATE = 32000
+const WIN_SCORE = 3.0
 
 
 "Command line options"
@@ -13,7 +14,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.35.1"
+    s.version = "0.36.0"
 
     @add_arg_table s begin
         "--engine"
@@ -325,11 +326,11 @@ Ref.: NAG - https://en.wikipedia.org/wiki/Numeric_Annotation_Glyphs
 function addmovenag(mygame::Game, em_score::Float64, gm_score::Float64, gscore::Score)::Nothing
     # Add ?? if game move score turns from playable to losing.
     # If game move score is 3 or more pawns behind but engine score is only 1 pawn behind.
-    if gm_score <= -3.0 && em_score >= -1.0
+    if gm_score <= -WIN_SCORE && em_score >= -1.0
         addnag!(mygame, 4)
 
     # Add ?? if game move is just equal or less from a winning score.
-    elseif em_score >= 3.0 && gm_score <= 0.5
+    elseif em_score >= WIN_SCORE && gm_score <= 0.5
         addnag!(mygame, 4)
 
     # Add ?? if game move score is to be mated and engine move is only a queen behind or better.
@@ -341,7 +342,7 @@ function addmovenag(mygame::Game, em_score::Float64, gm_score::Float64, gscore::
         addnag!(mygame, 2)
 
     # Add !, if game move is better by at least 5 cp than engine move.
-    elseif gm_score - 0.05 >= em_score && abs(em_score) <= 3.0
+    elseif gm_score - 0.05 >= em_score && abs(em_score) <= WIN_SCORE
         addnag!(mygame, 1)
     end
 
@@ -365,7 +366,7 @@ function get_threatmove(
     bmsan = nothing
 
     # Calculate the threat move if current engine score is not winning yet.
-    if escore >= 3.0
+    if escore >= WIN_SCORE
         return bmsan
     end
 
@@ -602,10 +603,20 @@ function analyze(in_pgnfn::String, out_pgnfn::String, engine_filename::String;
                 for (i, m) in enumerate(em_pv)
                     addmove!(mygame, m)
                     
-                    # Add a precomment "mate in" or "mated in" in the variation.
-                    if i == 1 && escore.ismate
-                        matecomment = escore.value > 0 ? "mate in" : "mated in"
-                        addprecomment!(mygame, "$matecomment $(abs(escore.value))")
+                    # Add a precomment in the variation.
+                    if i == 1
+                        if escore.ismate
+                            matecomment = escore.value > 0 ? "mate in" : "mated in"
+                            addprecomment!(mygame, "$matecomment $(abs(escore.value))")
+                        else
+                            # Add "better is" precomment if engine move score is at
+                            # least 1 pawn ahead compared to the game move score.
+                            if (em_score - 1.0 >= gm_score 
+                                && em_score >= -WIN_SCORE 
+                                && gm_score < WIN_SCORE)
+                                addprecomment!(mygame, "better is")
+                            end
+                        end
                     end
                 end
 

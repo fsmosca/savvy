@@ -13,7 +13,7 @@ function parse_commandline()
     s.prog = "savvy"
     s.description = "Analyze positions in the game and output annotated game."
     s.add_version = true
-    s.version = "0.35.0"
+    s.version = "0.35.1"
 
     @add_arg_table s begin
         "--engine"
@@ -57,7 +57,10 @@ function parse_commandline()
             help = "An option to analyze the game of a specified player name. Example: --playername \"Carlsen, Magnus\""
             arg_type = String
         "--analyzewin"
-            help = "A flag to enable analyzing games which have 1-0 or 0-1 results or when a specified player name won the game."
+            help = "A flag to enable analyzing games that have 1-0 or 0-1 results or when a specified player name has won the game."
+            action = :store_true
+        "--analyzeloss"
+            help = "A flag to enable analyzing games that have 1-0 or 0-1 results or when a specified player name has lost the game."
             action = :store_true
         "--analyzedraw"
             help = "A flag to enable analyzing games which have 1/2-1/2 results only."
@@ -67,9 +70,6 @@ function parse_commandline()
             action = :store_true
         "--analyzeblack"
             help = "A flag to only analyze the game of a player name when this player is playing black. This is useful when --playername option is used."
-            action = :store_true
-        "--analyzeloss"
-            help = "A flag to enable analyzing games where player name loses the game. This is useful when --playername option is used."
             action = :store_true
     end
 
